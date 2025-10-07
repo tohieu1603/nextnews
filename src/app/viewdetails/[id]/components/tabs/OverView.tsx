@@ -88,7 +88,7 @@ export default function OverviewTab({
         <PurchaseSymbolCard
           symbolId={data.symbolData.id}
           symbolName={data.symbolData.name}
-          price={200000}
+          price={100}
         />
       )}
 

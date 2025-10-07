@@ -37,7 +37,8 @@ export default function PurchasedLicensesTab({
     });
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | null) => {
+    if (!amount) return "0 VNĐ";
     return amount.toLocaleString("vi-VN") + " VNĐ";
   };
 
@@ -112,29 +113,29 @@ export default function PurchasedLicensesTab({
   return (
     <TabsContent
       value="licenses"
-      className="p-8 pt-12 space-y-6 bg-slate-900/40"
+      className="p-4 sm:p-6 lg:p-8 pt-8 sm:pt-10 lg:pt-12 space-y-4 sm:space-y-6 bg-slate-900/40"
     >
-      <div>
-        <h2 className="text-3xl font-bold text-white mb-2">Các mã đã mua</h2>
-        <p className="text-slate-400">
+      <div className="max-w-7xl mx-auto">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1.5 sm:mb-2">Các mã đã mua</h2>
+        <p className="text-sm sm:text-base text-slate-400">
           Quản lý các mã trading bot và dịch vụ đã mua
         </p>
       </div>
 
       {licenses.length === 0 ? (
-        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-700/40 border border-slate-400/20 backdrop-blur-sm">
-          <CardContent className="p-12 text-center">
-            <ShoppingBag className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-slate-300 mb-2">
+        <Card className="max-w-7xl mx-auto bg-gradient-to-br from-slate-800/40 to-slate-700/40 border border-slate-400/20 backdrop-blur-sm">
+          <CardContent className="p-8 sm:p-12 text-center">
+            <ShoppingBag className="w-12 h-12 sm:w-16 sm:h-16 text-slate-500 mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-lg sm:text-xl font-semibold text-slate-300 mb-1.5 sm:mb-2">
               Chưa có mã nào
             </h3>
-            <p className="text-slate-400">
+            <p className="text-sm sm:text-base text-slate-400">
               Bạn chưa mua bất kỳ mã trading bot nào
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4">
           {licenses.map((license) => (
             <Card
               key={license.license_id}
@@ -145,12 +146,12 @@ export default function PurchasedLicensesTab({
                   : "border-slate-400/20 hover:border-slate-400/30 opacity-75"
               )}
             >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-4">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-3">
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-lg flex items-center justify-center",
+                        "w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0",
                         license.is_active && license.status === "active"
                           ? "bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-400/30"
                           : "bg-gradient-to-br from-slate-500/20 to-gray-500/20 border border-slate-400/30"
@@ -158,18 +159,18 @@ export default function PurchasedLicensesTab({
                     >
                       <ShoppingBag
                         className={cn(
-                          "w-6 h-6",
+                          "w-5 h-5 sm:w-6 sm:h-6",
                           license.is_active && license.status === "active"
                             ? "text-emerald-400"
                             : "text-slate-400"
                         )}
                       />
                     </div>
-                    <div>
-                      <h3 className="font-bold text-white text-lg">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-white text-base sm:text-lg truncate">
                         {license.symbol_name}
                       </h3>
-                      <p className="text-sm text-slate-400">
+                      <p className="text-xs sm:text-sm text-slate-400 truncate">
                         Mã license: {license.license_id.substring(0, 8)}...
                       </p>
                     </div>
@@ -177,115 +178,113 @@ export default function PurchasedLicensesTab({
                   {getStatusBadge(license)}
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-slate-400 flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
+                  <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                    <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
+                      <Calendar className="w-3 h-3 flex-shrink-0" />
                       Ngày mua
                     </p>
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-xs sm:text-sm font-medium text-white truncate">
                       {formatDate(license.created_at)}
                     </p>
                   </div>
 
                   {!license.is_lifetime && (
                     <>
-                      <div>
-                        <p className="text-sm text-slate-400 flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
+                      <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                        <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
+                          <Calendar className="w-3 h-3 flex-shrink-0" />
                           Ngày bắt đầu
                         </p>
-                        <p className="text-sm font-medium text-white">
+                        <p className="text-xs sm:text-sm font-medium text-white truncate">
                           {formatDate(license.start_at)}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-slate-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
+                      <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                        <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
+                          <Clock className="w-3 h-3 flex-shrink-0" />
                           Hết hạn
                         </p>
-                        <p className="text-sm font-medium text-white">
+                        <p className="text-xs sm:text-sm font-medium text-white truncate">
                           {formatDate(license.end_at)}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-slate-400">Thời hạn</p>
-                        <p className="text-sm font-medium text-white">
+                      <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                        <p className="text-xs sm:text-sm text-slate-400 mb-1">Thời hạn</p>
+                        <p className="text-xs sm:text-sm font-medium text-white truncate">
                           {license.license_days} ngày
                         </p>
                       </div>
                     </>
                   )}
 
-                  <div>
-                    <p className="text-sm text-slate-400 flex items-center gap-1">
-                      <CreditCard className="w-3 h-3" />
+                  <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                    <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
+                      <CreditCard className="w-3 h-3 flex-shrink-0" />
                       Giá mua
                     </p>
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-xs sm:text-sm font-medium text-white truncate">
                       {formatCurrency(license.purchase_price)}
                     </p>
                   </div>
 
-                  <div>
-                    <p className="text-sm text-slate-400">Thanh toán</p>
-                    <p className="text-sm font-medium text-white">
+                  <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                    <p className="text-xs sm:text-sm text-slate-400 mb-1">Thanh toán</p>
+                    <p className="text-xs sm:text-sm font-medium text-white truncate">
                       {getPaymentMethodLabel(license.payment_method)}
                     </p>
                   </div>
                 </div>
 
-                {/* Auto-renew toggle - only show for non-lifetime active licenses */}
+                {/* Auto-renew toggle - only show for non-lifetime active licenses with subscription */}
                 {!license.is_lifetime &&
                  license.is_active &&
                  license.status === "active" &&
-                 license.payment_method === "wallet" && (
-                  <div className="mt-4 pt-4 border-t border-slate-600/30">
-                    <div className="flex items-center justify-between p-3 bg-slate-700/20 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <RotateCw className="w-5 h-5 text-blue-400" />
-                        <div>
-                          <p className="text-sm font-medium text-white">
+                 license.subscription && (
+                  <div className="mt-3 pt-3 border-t border-slate-600/30">
+                    <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/40 transition-colors">
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+                          license.subscription.is_active || license.subscription.status === "active"
+                            ? "bg-emerald-500/20"
+                            : "bg-slate-600/30"
+                        )}>
+                          <RotateCw className={cn(
+                            "w-4 h-4",
+                            license.subscription.is_active || license.subscription.status === "active"
+                              ? "text-emerald-400"
+                              : "text-slate-400"
+                          )} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-white">
                             Tự động gia hạn
                           </p>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-slate-400 truncate">
                             Tự động gia hạn khi sắp hết hạn (12 giờ trước)
                           </p>
                         </div>
                       </div>
                       <Switch
-                        checked={license.auto_renew}
+                        checked={license.subscription.is_active || license.subscription.status === "active"}
                         onCheckedChange={(checked) =>
-                          onToggleAutoRenew(license.license_id, license.auto_renew)
+                          onToggleAutoRenew(license.license_id, license.subscription.is_active || license.subscription.status === "active")
                         }
-                        className="data-[state=checked]:bg-emerald-500"
+                        className="data-[state=checked]:bg-emerald-500 flex-shrink-0 ml-2"
                       />
                     </div>
-                    {license.auto_renew && (
-                      <div className="mt-2 p-2 bg-blue-500/10 rounded border border-blue-400/20">
-                        <p className="text-xs text-blue-300 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          Đảm bảo ví có đủ tiền để tự động gia hạn
+                    {(license.subscription.is_active || license.subscription.status === "active") && (
+                      <div className="mt-2 p-2.5 bg-emerald-500/10 rounded-lg border border-emerald-400/20">
+                        <p className="text-xs text-emerald-300 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>Đảm bảo ví có đủ tiền để tự động gia hạn</span>
                         </p>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Show message if payment method is not wallet */}
-                {!license.is_lifetime &&
-                 license.is_active &&
-                 license.status === "active" &&
-                 license.payment_method !== "wallet" && (
-                  <div className="mt-4 pt-4 border-t border-slate-600/30">
-                    <div className="p-3 bg-yellow-500/10 rounded border border-yellow-400/20">
-                      <p className="text-xs text-yellow-300 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Tự động gia hạn chỉ hỗ trợ thanh toán qua Ví
-                      </p>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           ))}

@@ -157,6 +157,11 @@ export interface PurchasedLicense {
   payment_method: "wallet" | "sepay_transfer";
   order_total_amount: number;
   subscription_id?: string | null;
+  subscription?: {
+    subscription_id: string;
+    status: "pending_activation" | "active" | "paused" | "suspended" | "cancelled" | "completed";
+    is_active: boolean;
+  } | null;
 }
 
 // Auto-Renew Subscription Types

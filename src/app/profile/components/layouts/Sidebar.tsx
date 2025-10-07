@@ -42,7 +42,7 @@ export default function Sidebar({
   return (
     <div
       className={cn(
-        "w-80 bg-gradient-to-b from-slate-900/80 to-slate-800/60 backdrop-blur-xl border-r border-blue-400/20 flex flex-col overflow-hidden",
+        "w-64 lg:w-72 xl:w-80 bg-gradient-to-b from-slate-900/80 to-slate-800/60 backdrop-blur-xl border-r border-blue-400/20 flex flex-col",
         className
       )}
       style={style}

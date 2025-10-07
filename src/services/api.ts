@@ -221,6 +221,40 @@ export const cancelAutoRenew = async (
 };
 
 /**
+ * Create an auto-renew subscription for an existing license
+ * @param token - JWT authentication token
+ * @param licenseId - The license ID
+ * @param price - Renewal price
+ * @param cycleDays - Renewal cycle in days (default: 30)
+ */
+export const createAutoRenewSubscription = async (
+  token: string,
+  licenseId: string,
+  price: number,
+  cycleDays: number = 30
+) => {
+  try {
+    const response = await api.post(
+      `/settings/symbol/subscriptions/create`,
+      {
+        license_id: licenseId,
+        price: price,
+        cycle_days: cycleDays,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("createAutoRenewSubscription error:", error);
+    throw error;
+  }
+};
+
+/**
  * Get auto-renew attempts history
  * @param token - JWT authentication token
  * @param subscriptionId - The subscription ID

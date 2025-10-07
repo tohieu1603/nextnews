@@ -70,7 +70,7 @@ export default function WalletTab() {
 
   // Validation function for top-up amounts
   const validateTopUpAmount = (amount: number): string | null => {
-    const minTopUp = 50000;
+    const minTopUp = 5000;
     const maxTopUp = 50000000; // 50 million VND max per transaction
 
     if (amount < minTopUp) {
@@ -280,7 +280,7 @@ export default function WalletTab() {
               />
               <div className="flex items-center justify-between mt-1">
                 <p className="text-xs text-slate-400">
-                  Số tiền tối thiểu: 50,000 VNĐ
+                  Số tiền tối thiểu: 5,000 VNĐ
                 </p>
                 {validationErrors.topUpAmount && (
                   <p className="text-red-400 text-xs">
@@ -307,7 +307,7 @@ export default function WalletTab() {
 
             <Button
               onClick={handleTopUp}
-              disabled={topUpAmount < 50000 || isLoading}
+              disabled={topUpAmount < 5000 || isLoading}
               className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white disabled:opacity-50 font-bold py-5 text-base"
             >
               {isLoading ? (
@@ -333,7 +333,7 @@ export default function WalletTab() {
               Hướng dẫn nạp tiền
             </h4>
             <div className="text-sm text-slate-400 space-y-1">
-              <p>1. Nhập số tiền muốn nạp (tối thiểu 50,000 VNĐ)</p>
+              <p>1. Nhập số tiền muốn nạp (tối thiểu 5,000 VNĐ)</p>
               <p>2. Nhấn &quot;Tạo mã QR nạp tiền&quot;</p>
               <p>3. Sử dụng app ngân hàng quét mã QR để thanh toán</p>
               <p>4. Tiền sẽ được cộng vào ví sau 1-5 phút</p>

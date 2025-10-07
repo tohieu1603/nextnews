@@ -9,6 +9,9 @@ import {
   CreditCard,
   QrCode,
   Settings,
+  User,
+  ShoppingBag,
+  Wallet,
 } from "lucide-react";
 import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/vi";
@@ -53,6 +56,7 @@ import TransactionHistoryTab from "./components/tabs/TransactionHistoryTab";
 import WalletTab from "./components/tabs/WalletTab";
 import SettingsTab from "./components/tabs/SettingsTab";
 import { getPurchasedLicenses, pauseAutoRenew, resumeAutoRenew } from "@/services/api";
+import { cn } from "@/components/ui/utils";
 
 const HEADER_HEIGHT = "8rem";
 const CONTENT_MIN_HEIGHT = `calc(100vh - ${HEADER_HEIGHT})`;
@@ -442,19 +446,27 @@ export default function UserProfilePage() {
     if (!access_token) return;
 
     try {
-      // Find the subscription for this license
       const license = purchasedLicenses.find(l => l.license_id === licenseId);
-      if (!license || !license.subscription_id) {
-        console.error("No subscription found for license");
+      if (!license) {
+        console.error("License not found");
         return;
       }
 
+      // Get subscription ID from either flat or nested format
+      const subscriptionId = license.subscription_id || license.subscription?.subscription_id;
+
+      if (!subscriptionId) {
+        console.error("No subscription found for this license");
+        return;
+      }
+
+      // Toggle subscription status
       if (currentValue) {
-        // Currently enabled, so pause it
-        await pauseAutoRenew(access_token, license.subscription_id);
+        // Currently enabled (active), so pause it (turn OFF)
+        await pauseAutoRenew(access_token, subscriptionId);
       } else {
-        // Currently disabled, so resume it
-        await resumeAutoRenew(access_token, license.subscription_id);
+        // Currently disabled (paused), so resume it (turn ON)
+        await resumeAutoRenew(access_token, subscriptionId);
       }
 
       // Refresh licenses list
@@ -466,12 +478,9 @@ export default function UserProfilePage() {
   };
 
   return (
-    <div
-      className="relative overflow-hidden bg-[#0E1B36] pt-32"
-      style={{ minHeight: CONTENT_MIN_HEIGHT }}
-    >
-      {/* Enhanced Animated Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="min-h-screen bg-[#0E1B36]">
+      {/* Fixed Background Layer */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         {/* Flowing particles */}
         {[...Array(50)].map((_, i) => (
           <div
@@ -553,36 +562,60 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      {/* Main Split Layout */}
-      <div
-        className="relative z-10 flex"
-        style={{ minHeight: CONTENT_MIN_HEIGHT }}
-      >
-        {/* Left Panel - User Dashboard */}
-        <Sidebar
-          user={user}
-          membershipDays={membershipDays}
-          activeBots={activeBots}
-          totalServices={totalServices}
-          tradingBots={tradingBots}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          className="fixed self-start overflow-y-auto flex-shrink-0"
-          style={{
-            top: HEADER_HEIGHT,
-            height: SIDEBAR_MAX_HEIGHT,
-            maxHeight: SIDEBAR_MAX_HEIGHT,
-            marginTop: PROFILE_CONTENT_TOP_OFFSET,
-          }}
-        />
+      {/* Page Container with proper spacing from header */}
+      <div className="relative z-10 pt-32">
 
-        {/* Right Panel - Content Area with Tabs */}
-        <div
-          className="flex-1 ml-[280px]"
-          style={{
-            marginTop: PROFILE_CONTENT_TOP_OFFSET,
-          }}
-        >
+        {/* Mobile Tab Navigation */}
+        <div className="md:hidden sticky top-32 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-blue-400/20">
+          <div className="overflow-x-auto scrollbar-hide">
+            <div className="flex gap-2 px-4 py-3 min-w-max">
+              {[
+                { id: "profile", icon: User, label: "Thông tin" },
+                { id: "licenses", icon: ShoppingBag, label: "Mã" },
+                { id: "wallet", icon: Wallet, label: "Ví" },
+                { id: "history", icon: CreditCard, label: "Lịch sử" },
+                { id: "settings", icon: Settings, label: "Cài đặt" },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap",
+                      activeTab === tab.id
+                        ? "bg-blue-500/20 text-blue-400 border border-blue-400/30"
+                        : "text-slate-400 hover:text-white hover:bg-slate-700/30"
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Main Layout Wrapper */}
+        <div className="flex">
+
+          {/* Sidebar - Desktop Only, Fixed Position */}
+          <aside className="hidden md:block fixed left-0 w-64 lg:w-72 xl:w-80 h-[calc(100vh-8rem)] overflow-y-auto">
+            <Sidebar
+              user={user}
+              membershipDays={membershipDays}
+              activeBots={activeBots}
+              totalServices={totalServices}
+              tradingBots={tradingBots}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              className="h-full"
+            />
+          </aside>
+
+          {/* Main Content Area */}
+          <main className="flex-1 md:ml-64 lg:ml-72 xl:ml-80 w-full">
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
@@ -624,6 +657,7 @@ export default function UserProfilePage() {
               formatCurrency={formatCurrency}
             />
           </Tabs>
+          </main>
         </div>
       </div>
 
