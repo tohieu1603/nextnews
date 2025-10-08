@@ -281,3 +281,46 @@ export const getAutoRenewAttempts = async (
     throw error;
   }
 };
+
+// === AUTHENTICATION API ===
+
+/**
+ * Get Google OAuth authentication URL
+ * @returns Object containing auth_url
+ */
+export const getGoogleAuthUrl = async () => {
+  try {
+    const response = await api.get("/auth/google/auth-url", {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("getGoogleAuthUrl error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Login with email and password
+ * @param email - User email
+ * @param password - User password
+ * @param rememberMe - Remember user login
+ * @returns Authentication response with token
+ */
+export const loginWithEmail = async (
+  email: string,
+  password: string,
+  rememberMe: boolean = false
+) => {
+  try {
+    const response = await api.post("/auth/login", {
+      email,
+      password,
+      rememberMe,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("loginWithEmail error:", error);
+    throw error;
+  }
+};
