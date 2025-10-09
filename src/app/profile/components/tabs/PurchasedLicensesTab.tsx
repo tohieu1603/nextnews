@@ -15,17 +15,19 @@ import {
   Clock,
   AlertCircle
 } from "lucide-react";
-import { PurchasedLicense } from "@/types";
+import { PurchasedLicense, AutoRenewSubscription } from "@/types";
 
 interface PurchasedLicensesTabProps {
   licenses: PurchasedLicense[];
   onToggleAutoRenew: (licenseId: string, currentValue: boolean) => void;
+  onCreateAutoRenew: (license: PurchasedLicense) => void;
   loading?: boolean;
 }
 
 export default function PurchasedLicensesTab({
   licenses,
   onToggleAutoRenew,
+  onCreateAutoRenew,
   loading = false,
 }: PurchasedLicensesTabProps) {
   const formatDate = (dateString: string | null) => {
@@ -40,6 +42,18 @@ export default function PurchasedLicensesTab({
   const formatCurrency = (amount: number | null) => {
     if (!amount) return "0 VNĐ";
     return amount.toLocaleString("vi-VN") + " VNĐ";
+  };
+
+  const formatDateTime = (dateString: string | null | undefined) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const getDaysRemaining = (endDate: string | null) => {
@@ -96,6 +110,28 @@ export default function PurchasedLicensesTab({
     }
   };
 
+  const getSubscriptionStatusLabel = (
+    status: AutoRenewSubscription["status"] | undefined | null
+  ) => {
+    if (!status) return "Không xác định";
+    switch (status) {
+      case "pending_activation":
+        return "Đang chờ kích hoạt";
+      case "active":
+        return "Đang hoạt động";
+      case "paused":
+        return "Tạm dừng";
+      case "suspended":
+        return "Bị tạm ngưng";
+      case "cancelled":
+        return "Đã hủy";
+      case "completed":
+        return "Đã hoàn tất";
+      default:
+        return status;
+    }
+  };
+
   if (loading) {
     return (
       <TabsContent
@@ -136,17 +172,39 @@ export default function PurchasedLicensesTab({
         </Card>
       ) : (
         <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4">
-          {licenses.map((license) => (
-            <Card
-              key={license.license_id}
-              className={cn(
-                "bg-gradient-to-br from-slate-800/40 to-slate-700/40 border backdrop-blur-sm transition-all",
-                license.is_active && license.status === "active"
-                  ? "border-blue-400/20 hover:border-blue-400/40"
-                  : "border-slate-400/20 hover:border-slate-400/30 opacity-75"
-              )}
-            >
-              <CardContent className="p-4 sm:p-6">
+          {licenses.map((license) => {
+            const subscriptionStatus = license.subscription?.status ?? null;
+            const isAutoRenewActive = Boolean(
+              license.subscription &&
+                ((license.subscription.is_active ?? false) ||
+                  subscriptionStatus === "active")
+            );
+            const canManageAutoRenew = Boolean(
+              license.subscription &&
+                subscriptionStatus &&
+                !["cancelled", "completed"].includes(subscriptionStatus)
+            );
+            const shouldOfferAutoRenew =
+              !license.is_lifetime &&
+              license.is_active &&
+              license.status === "active" &&
+              !canManageAutoRenew;
+            const renewalPrice =
+              license.subscription?.price ??
+              license.auto_renew_price ??
+              license.purchase_price;
+
+            return (
+              <Card
+                key={license.license_id}
+                className={cn(
+                  "bg-gradient-to-br from-slate-800/40 to-slate-700/40 border backdrop-blur-sm transition-all",
+                  license.is_active && license.status === "active"
+                    ? "border-blue-400/20 hover:border-blue-400/40"
+                    : "border-slate-400/20 hover:border-slate-400/30 opacity-75"
+                )}
+              >
+                <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-4">
                   <div className="flex items-center gap-3">
                     <div
@@ -236,23 +294,56 @@ export default function PurchasedLicensesTab({
                   </div>
                 </div>
 
-                {/* Auto-renew toggle - only show for non-lifetime active licenses with subscription */}
+                {/* Auto-renew setup call-to-action */}
+                {shouldOfferAutoRenew && (
+                  <div className="mt-3 pt-3 border-t border-slate-600/30">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/40 transition-colors">
+                      <div className="flex items-center gap-2.5 flex-1">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-600/40 flex-shrink-0">
+                          <RotateCw className="w-4 h-4 text-slate-300" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white">
+                            Thiết lập tự động gia hạn
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            Gia hạn tự động với giá {formatCurrency(renewalPrice)}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => onCreateAutoRenew(license)}
+                        className="bg-emerald-500 hover:bg-emerald-500/90 text-slate-900 font-semibold"
+                      >
+                        Bật tự động gia hạn
+                      </Button>
+                    </div>
+                    <div className="mt-2 p-2.5 bg-slate-700/40 rounded-lg border border-slate-600/40">
+                      <p className="text-xs text-slate-300 flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span>Ví sẽ được trừ tự động trước khi license hết hạn, hãy đảm bảo số dư đủ</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Auto-renew toggle - only show when subscription is available */}
                 {!license.is_lifetime &&
                  license.is_active &&
                  license.status === "active" &&
-                 license.subscription && (
+                 canManageAutoRenew && (
                   <div className="mt-3 pt-3 border-t border-slate-600/30">
                     <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/40 transition-colors">
                       <div className="flex items-center gap-2.5 flex-1 min-w-0">
                         <div className={cn(
                           "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                          license.subscription.is_active || license.subscription.status === "active"
+                          isAutoRenewActive
                             ? "bg-emerald-500/20"
                             : "bg-slate-600/30"
                         )}>
                           <RotateCw className={cn(
                             "w-4 h-4",
-                            license.subscription.is_active || license.subscription.status === "active"
+                            isAutoRenewActive
                               ? "text-emerald-400"
                               : "text-slate-400"
                           )} />
@@ -267,27 +358,74 @@ export default function PurchasedLicensesTab({
                         </div>
                       </div>
                       <Switch
-                        checked={license.subscription.is_active || license.subscription.status === "active"}
-                        onCheckedChange={(checked) =>
-                          onToggleAutoRenew(license.license_id, license.subscription.is_active || license.subscription.status === "active")
+                        checked={isAutoRenewActive}
+                        onCheckedChange={() =>
+                          onToggleAutoRenew(license.license_id, isAutoRenewActive)
                         }
                         className="data-[state=checked]:bg-emerald-500 flex-shrink-0 ml-2"
                       />
                     </div>
-                    {(license.subscription.is_active || license.subscription.status === "active") && (
+                    {isAutoRenewActive && (
                       <div className="mt-2 p-2.5 bg-emerald-500/10 rounded-lg border border-emerald-400/20">
                         <p className="text-xs text-emerald-300 flex items-center gap-1.5">
                           <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                           <span>Đảm bảo ví có đủ tiền để tự động gia hạn</span>
                         </p>
+                        <p className="mt-1 text-[11px] text-emerald-200">
+                          Khi gia hạn thành công, thời hạn license hiện tại được kéo dài thêm chu kỳ mới.
+                        </p>
+                      </div>
+                    )}
+                    {license.subscription && (
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {license.subscription.next_billing_at && (
+                          <div className="rounded-lg border border-slate-600/30 bg-slate-700/30 p-2.5">
+                            <p className="text-xs text-slate-400 mb-1">
+                              Lần gia hạn tiếp theo
+                            </p>
+                            <p className="text-sm font-medium text-white">
+                              {formatDateTime(license.subscription.next_billing_at)}
+                            </p>
+                          </div>
+                        )}
+                        {license.subscription.last_success_at && (
+                          <div className="rounded-lg border border-slate-600/30 bg-slate-700/30 p-2.5">
+                            <p className="text-xs text-slate-400 mb-1">
+                              Gia hạn gần nhất
+                            </p>
+                            <p className="text-sm font-medium text-white">
+                              {formatDateTime(license.subscription.last_success_at)}
+                            </p>
+                          </div>
+                        )}
+                        <div className="rounded-lg border border-slate-600/30 bg-slate-700/30 p-2.5 sm:col-span-2">
+                          <p className="text-xs text-slate-400 mb-1">
+                            Trạng thái
+                          </p>
+                          <p className="text-sm font-medium text-white">
+                            {getSubscriptionStatusLabel(license.subscription.status)}
+                          </p>
+                        </div>
+                        {typeof license.subscription.consecutive_failures === "number" &&
+                          license.subscription.consecutive_failures > 0 && (
+                            <div className="rounded-lg border border-amber-600/40 bg-amber-500/10 p-2.5 sm:col-span-2">
+                              <p className="text-xs text-amber-200 mb-1">
+                                Cảnh báo
+                              </p>
+                              <p className="text-sm text-amber-100">
+                                Có {license.subscription.consecutive_failures} lần gia hạn thất bại liên tiếp. Vui lòng kiểm tra số dư ví.
+                              </p>
+                            </div>
+                          )}
                       </div>
                     )}
                   </div>
                 )}
 
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </TabsContent>

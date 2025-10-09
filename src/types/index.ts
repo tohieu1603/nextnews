@@ -139,7 +139,7 @@ export interface SepayPaymentIntent {
   message: string;
 }
 
-// Purchased Licenses Types
+// Purchased Licenses Types (from /api/sepay/symbol/licenses)
 export interface PurchasedLicense {
   license_id: string;
   symbol_id: number;
@@ -154,31 +154,38 @@ export interface PurchasedLicense {
   purchase_price: number;
   license_days: number | null;
   auto_renew: boolean;
+  auto_renew_price?: number | null;
   payment_method: "wallet" | "sepay_transfer";
   order_total_amount: number;
+  subscription?: AutoRenewSubscription | null;
   subscription_id?: string | null;
-  subscription?: {
-    subscription_id: string;
-    status: "pending_activation" | "active" | "paused" | "suspended" | "cancelled" | "completed";
-    is_active: boolean;
-  } | null;
 }
 
 // Auto-Renew Subscription Types
 export interface AutoRenewSubscription {
-  id: string;
-  license_id: string;
+  id?: string;
+  subscription_id: string;
   symbol_id: number;
-  symbol_name: string;
+  symbol_name?: string;
+  license_id?: string | null;
+  current_license_id?: string | null;
   status: "pending_activation" | "active" | "paused" | "suspended" | "cancelled" | "completed";
+  is_active?: boolean;
   price: number;
   cycle_days: number;
+  payment_method: "wallet" | "sepay_transfer";
   next_billing_at: string | null;
-  last_renewal_at: string | null;
-  failed_attempts: number;
+  last_success_at: string | null;
+  last_attempt_at: string | null;
+  consecutive_failures?: number;
+  failed_attempts?: number;
+  grace_period_hours?: number;
+  retry_interval_minutes?: number;
+  max_retry_attempts?: number;
+  last_order_id?: string | null;
   created_at: string;
   updated_at: string;
-  cancelled_at: string | null;
+  cancelled_at?: string | null;
 }
 
 export interface AutoRenewAttempt {
