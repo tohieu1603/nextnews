@@ -1,9 +1,9 @@
-import { UserProfile, WalletInfo, TopUpIntent, TopUpStatus, PaymentHistoryResponse, SymbolOrderResponse, SepayPaymentIntent } from "@/types";
+import { UserProfile, WalletInfo, TopUpIntent, TopUpStatus, PaymentHistoryResponse, SymbolOrderResponse, SepayPaymentIntent, SymbolAccessCheckResponse } from "@/types";
 import axios from "axios";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 interface PaymentIntentStatus {
   intent_id: string;
@@ -39,7 +39,11 @@ interface AuthState {
     licenseDays: number;
     paymentMethod: "wallet" | "sepay_transfer";
     description: string;
+    autoRenew?: boolean;
+    autoRenewPrice?: number | null;
+    autoRenewCycleDays?: number | null;
   }) => Promise<SymbolOrderResponse | null>;
+  checkSymbolAccess: (symbolId: number) => Promise<SymbolAccessCheckResponse | null>;
   paySymbolOrderWithSepay: (orderId: string) => Promise<SepayPaymentIntent | null>;
   paySymbolOrderWithTopup: (orderId: string) => Promise<SepayPaymentIntent | null>;
   checkPaymentIntentStatus: (intentId: string) => Promise<PaymentIntentStatus | null>;
@@ -245,6 +249,9 @@ export const useAuthStore = create<AuthState>()(
             return null;
           }
 
+          const autoRenewEnabled = Boolean(params.autoRenew);
+          const itemAutoRenewPrice = params.autoRenewPrice ?? params.price;
+          const itemAutoRenewCycleDays = params.autoRenewCycleDays ?? params.licenseDays;
           const { data } = await axios.post<SymbolOrderResponse>(
             `${API_BASE_URL}/api/sepay/symbol/orders/`,
             {
@@ -254,9 +261,9 @@ export const useAuthStore = create<AuthState>()(
                   price: params.price,
                   license_days: params.licenseDays,
                   metadata: {},
-                  auto_renew: false,
-                  auto_renew_price: null,
-                  auto_renew_cycle_days: null,
+                  auto_renew: autoRenewEnabled,
+                  auto_renew_price: itemAutoRenewPrice,
+                  auto_renew_cycle_days: itemAutoRenewCycleDays,
                 },
               ],
               payment_method: params.paymentMethod,
@@ -275,6 +282,32 @@ export const useAuthStore = create<AuthState>()(
           } else {
             console.error("❌ Lỗi mua Symbol:", err);
           }
+          return null;
+        }
+      },
+
+      checkSymbolAccess: async (symbolId: number) => {
+        try {
+          const token = get().access_token;
+          if (!token) {
+            console.warn("⚠️ No access token for symbol access check");
+            return null;
+          }
+
+          const { data } = await axios.get<SymbolAccessCheckResponse>(
+            `${API_BASE_URL}/api/sepay/symbol/${symbolId}/access`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+
+          return data;
+        } catch (err) {
+          if (axios.isAxiosError(err) && err.response?.status === 404) {
+            console.warn("ℹ️ No existing license found for symbol:", symbolId);
+            return { has_access: false, symbol_id: symbolId };
+          }
+          console.error("❌ Lỗi kiểm tra quyền truy cập symbol:", err);
           return null;
         }
       },

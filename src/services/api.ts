@@ -1,4 +1,11 @@
-﻿import axios from "axios";
+import axios from "axios";
+import {
+  CreateNotificationEndpointPayload,
+  EnableAutoRenewRequest,
+  NotificationEndpoint,
+  UpdateNotificationEndpointPayload,
+  VerifyNotificationEndpointPayload,
+} from "@/types";
 const API_URL = `${process.env.NEXT_PUBLIC_API_ORIGIN}/api`;
 // const API_URL = "https://payment.operis.vn/api";
 console.log("API_URLLLLL", API_URL);
@@ -160,6 +167,41 @@ export const getAutoRenewSubscriptions = async (token: string) => {
 };
 
 /**
+ * Enable auto-renew for a symbol/license
+ * @param token - JWT authentication token
+ * @param payload - EnableAutoRenewRequest body
+ */
+export const enableAutoRenewSubscription = async (
+  token: string,
+  payload: EnableAutoRenewRequest
+) => {
+  try {
+    const body: Record<string, any> = {
+      ...payload,
+      payment_method: payload.payment_method ?? "wallet",
+    };
+
+    if (body.price !== undefined && body.price !== null) {
+      body.price = body.price.toString();
+    }
+
+    const response = await api.post(
+      "/settings/symbol/subscriptions/enable",
+      body,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("enableAutoRenewSubscription error:", error);
+    throw error;
+  }
+};
+
+/**
  * Pause an auto-renew subscription
  * @param token - JWT authentication token
  * @param subscriptionId - The subscription ID
@@ -207,7 +249,6 @@ export const resumeAutoRenew = async (
     throw error;
   }
 };
-
 /**
  * Cancel an auto-renew subscription
  * @param token - JWT authentication token
@@ -230,40 +271,6 @@ export const cancelAutoRenew = async (
     return response.data;
   } catch (error) {
     console.error("cancelAutoRenew error:", error);
-    throw error;
-  }
-};
-
-/**
- * Create an auto-renew subscription for an existing license
- * @param token - JWT authentication token
- * @param licenseId - The license ID
- * @param price - Renewal price
- * @param cycleDays - Renewal cycle in days (default: 30)
- */
-export const createAutoRenewSubscription = async (
-  token: string,
-  licenseId: string,
-  price: number,
-  cycleDays: number = 30
-) => {
-  try {
-    const response = await api.post(
-      `/settings/symbol/subscriptions/create`,
-      {
-        license_id: licenseId,
-        price: price,
-        cycle_days: cycleDays,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    return response.data;
-  } catch (error) {
-    console.error("createAutoRenewSubscription error:", error);
     throw error;
   }
 };
@@ -295,7 +302,6 @@ export const getAutoRenewAttempts = async (
     throw error;
   }
 };
-
 export const getEconomicCalendar = async (
   date_from: string,
   date_to: string
@@ -325,3 +331,133 @@ export const getEconomicCalendar = async (
 };
 
 
+=======
+// === NOTIFICATION API ===
+
+const withAuth = (token: string) => ({
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
+
+export const getNotificationEndpoints = async (
+  token: string
+): Promise<NotificationEndpoint[]> => {
+  try {
+    const response = await api.get(
+      "/notifications/endpoints",
+      withAuth(token)
+    );
+    return response.data;
+  } catch (error) {
+    console.error("getNotificationEndpoints error:", error);
+    throw error;
+  }
+};
+
+export const createNotificationEndpoint = async (
+  token: string,
+  payload: CreateNotificationEndpointPayload
+): Promise<NotificationEndpoint> => {
+  try {
+    const response = await api.post(
+      "/notifications/endpoints",
+      payload,
+      withAuth(token)
+    );
+    return response.data;
+  } catch (error) {
+    console.error("createNotificationEndpoint error:", error);
+    throw error;
+  }
+};
+export const updateNotificationEndpoint = async (
+  token: string,
+  endpointId: string,
+  payload: UpdateNotificationEndpointPayload
+): Promise<NotificationEndpoint> => {
+  try {
+    const response = await api.patch(
+      `/notifications/endpoints/${endpointId}`,
+      payload,
+      withAuth(token)
+    );
+    return response.data;
+  } catch (error) {
+    console.error("updateNotificationEndpoint error:", error);
+    throw error;
+  }
+};
+
+export const deleteNotificationEndpoint = async (
+  token: string,
+  endpointId: string
+): Promise<void> => {
+  try {
+    await api.delete(
+      `/notifications/endpoints/${endpointId}`,
+      withAuth(token)
+    );
+  } catch (error) {
+    console.error("deleteNotificationEndpoint error:", error);
+    throw error;
+  }
+};
+export const verifyNotificationEndpoint = async (
+  token: string,
+  endpointId: string,
+  payload: VerifyNotificationEndpointPayload
+): Promise<NotificationEndpoint> => {
+  try {
+    const response = await api.post(
+      `/notifications/endpoints/${endpointId}/verify`,
+      payload,
+      withAuth(token)
+    );
+    return response.data;
+  } catch (error) {
+    console.error("verifyNotificationEndpoint error:", error);
+    throw error;
+  }
+};
+// === AUTHENTICATION API ===
+/**
+ * Get Google OAuth authentication URL
+ * @returns Object containing auth_url
+ */
+export const getGoogleAuthUrl = async () => {
+  try {
+    const response = await api.get("/auth/google/auth-url", {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("getGoogleAuthUrl error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Login with email and password
+ * @param email - User email
+ * @param password - User password
+ * @param rememberMe - Remember user login
+ * @returns Authentication response with token
+ */
+export const loginWithEmail = async (
+  email: string,
+  password: string,
+  rememberMe: boolean = false
+) => {
+  try {
+    const response = await api.post("/auth/login", {
+      email,
+      password,
+      rememberMe,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("loginWithEmail error:", error);
+    throw error;
+  }
+};

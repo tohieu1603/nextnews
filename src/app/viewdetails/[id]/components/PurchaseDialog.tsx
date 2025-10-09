@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { cn } from "@/components/ui/utils";
+import { SymbolAccessCheckResponse } from "@/types";
+import { Switch } from "@/components/ui/switch";
 
 interface PurchaseDialogProps {
   open: boolean;
@@ -30,6 +32,8 @@ interface PurchaseDialogProps {
   symbolName: string;
   price: number;
   licenseDays: number;
+  existingAccess?: SymbolAccessCheckResponse | null;
+  onPurchaseSuccess?: () => void | Promise<void>;
 }
 
 type PurchaseStep =
@@ -47,6 +51,8 @@ export default function PurchaseDialog({
   symbolName,
   price,
   licenseDays,
+  existingAccess,
+  onPurchaseSuccess,
 }: PurchaseDialogProps) {
   const { wallet, fetchWallet, purchaseSymbol, paySymbolOrderWithSepay, paySymbolOrderWithTopup, checkPaymentIntentStatus } = useAuthStore();
   const [step, setStep] = useState<PurchaseStep>("confirm");
@@ -64,9 +70,26 @@ export default function PurchaseDialog({
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const MAX_RETRIES = 20; // Max ~100 seconds of polling
+  const [autoRenewEnabled, setAutoRenewEnabled] = useState(false);
+  const autoRenewToggleDisabled = Boolean(existingAccess?.is_lifetime);
 
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat("vi-VN").format(amount);
+  };
+
+  const formatDateTime = (isoDate?: string | null): string | null => {
+    if (!isoDate) return null;
+    const date = new Date(isoDate);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
   };
 
   // Cleanup polling on unmount
@@ -91,8 +114,21 @@ export default function PurchaseDialog({
     setQrData(null);
     setError(null);
     setRetryCount(0);
+    setAutoRenewEnabled(false);
     onOpenChange(false);
   };
+
+  useEffect(() => {
+    if (step === "success") {
+      void onPurchaseSuccess?.();
+    }
+  }, [onPurchaseSuccess, step]);
+
+  useEffect(() => {
+    if (autoRenewToggleDisabled && autoRenewEnabled) {
+      setAutoRenewEnabled(false);
+    }
+  }, [autoRenewToggleDisabled, autoRenewEnabled]);
 
   // Handle purchase with wallet
   const handlePurchase = async () => {
@@ -106,6 +142,9 @@ export default function PurchaseDialog({
         licenseDays,
         paymentMethod: "wallet",
         description: `Mua mã ${symbolName} - ${licenseDays} ngày`,
+        autoRenew: autoRenewEnabled,
+        autoRenewPrice: price,
+        autoRenewCycleDays: licenseDays,
       });
 
       if (!result) {
@@ -244,6 +283,43 @@ export default function PurchaseDialog({
             </DialogHeader>
 
             <div className="space-y-4 py-4">
+              {existingAccess?.has_access && (
+                <div className={`p-4 rounded-lg border ${existingAccess.expires_soon ? "border-amber-400/40 bg-amber-500/10" : "border-emerald-400/30 bg-emerald-500/10"}`}>
+                  <div className="text-sm font-semibold text-white">
+                    Quyền truy cập hiện tại
+                  </div>
+                  <div className="mt-2 text-xs text-slate-200 space-y-1">
+                    {existingAccess.is_lifetime ? (
+                      <div>Gói trọn đời đang hoạt động.</div>
+                    ) : (
+                      <>
+                        {existingAccess.start_at && (
+                          <div>
+                            Bắt đầu từ:{" "}
+                            <span className="text-emerald-200">
+                              {formatDateTime(existingAccess.start_at)}
+                            </span>
+                          </div>
+                        )}
+                        <div>
+                          Hết hạn:{" "}
+                          <span className={existingAccess.expires_soon ? "text-amber-300 font-semibold" : "text-emerald-200"}>
+                            {formatDateTime(existingAccess.end_at) ?? "Chưa xác định"}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    <div className="text-slate-300">
+                      {existingAccess.is_lifetime
+                        ? "Bạn vẫn có thể mua thêm nếu muốn tặng người khác hoặc gia hạn thêm ngày dư."
+                        : existingAccess.expires_soon
+                          ? "Thời hạn sắp kết thúc, mua thêm để tránh gián đoạn tín hiệu."
+                          : "Quyền truy cập đang hoạt động. Mua thêm sẽ gia hạn thêm thời gian."}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="p-4 bg-slate-700/30 rounded-lg border border-slate-600/30 space-y-3">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Mã:</span>
@@ -278,6 +354,42 @@ export default function PurchaseDialog({
                   )}
                 </div>
               )}
+
+              <div className="p-4 bg-slate-700/30 rounded-lg border border-slate-600/30 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      Bật tự động gia hạn
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      Hệ thống sẽ tự tạo đơn mới và trừ ví trước khi license hết hạn.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={autoRenewEnabled}
+                    onCheckedChange={setAutoRenewEnabled}
+                    className="data-[state=checked]:bg-emerald-500"
+                    aria-label="Bật tự động gia hạn"
+                    disabled={autoRenewToggleDisabled}
+                  />
+                </div>
+                {autoRenewToggleDisabled ? (
+                  <p className="text-xs text-slate-500">
+                    License trọn đời không cần gia hạn tự động.
+                  </p>
+                ) : autoRenewEnabled ? (
+                  <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3 text-xs text-emerald-200 space-y-1">
+                    <p>
+                      Mỗi {licenseDays} ngày sẽ thu {formatCurrency(price)} đ từ ví.
+                    </p>
+                    <p>Auto-renew diễn ra trước hạn 12 giờ theo cài đặt mặc định.</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400">
+                    Bạn có thể bật lại trong phần Cài đặt &gt; Các mã đã mua.
+                  </p>
+                )}
+              </div>
             </div>
 
             <DialogFooter className="gap-2">

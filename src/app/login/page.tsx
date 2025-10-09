@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
-import axios from "axios";
 import { useRouter } from "next/navigation";
+import { getGoogleAuthUrl, loginWithEmail } from "@/services/api";
 import {
   ArrowLeft,
   Eye,
@@ -33,31 +33,38 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate login process
-    setTimeout(() => {
+    try {
+      const response = await loginWithEmail(email, password, rememberMe);
+      console.log("Login successful:", response);
+      // Handle successful login (e.g., store token, redirect)
+      if (response.token) {
+        localStorage.setItem("token", response.token);
+        if (rememberMe) {
+          localStorage.setItem("user", JSON.stringify({ email }));
+        }
+        router.push("/profile");
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("Đăng nhập thất bại. Vui lòng kiểm tra email và mật khẩu.");
+    } finally {
       setIsLoading(false);
-      console.log("Login attempt:", { email, password, rememberMe });
-    }, 1500);
+    }
   };
 
-  // removed unused handleGoogleLogin
-  // Wrapper with loading + basic error UX for Google sign-in
   const onGoogleClick = async () => {
     try {
       setIsGoogleLoading(true);
-      const resp = await axios.get(
-        `http://127.0.0.1:8000/api/auth/google/auth-url`,
-        { withCredentials: true }
-      );
+      const resp = await getGoogleAuthUrl();
 
       const url =
-        resp.data?.auth_url ||
-        resp.data?.authUrl ||
-        resp.data?.url ||
-        resp.data?.data?.auth_url ||
-        resp.data?.data?.authUrl;
+        resp?.auth_url ||
+        resp?.authUrl ||
+        resp?.url ||
+        resp?.data?.auth_url ||
+        resp?.data?.authUrl;
       if (url) {
-        window.location.assign(url); // save state for later verification
+        window.location.assign(url);
         return;
       }
       alert("Không lấy được URL đăng nhập Google. Vui lòng thử lại.");

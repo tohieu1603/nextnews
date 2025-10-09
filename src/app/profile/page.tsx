@@ -48,14 +48,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuthStore } from "@/store/auth.store";
 import { TradingBot, Transaction, Package, WalletBalance } from "./types";
-import { PurchasedLicense } from "@/types";
+import { PurchasedLicense, AutoRenewSubscription } from "@/types";
 import Sidebar from "./components/layouts/Sidebar";
 import UserProfileTab from "./components/tabs/UserProfileTab";
 import PurchasedLicensesTab from "./components/tabs/PurchasedLicensesTab";
 import TransactionHistoryTab from "./components/tabs/TransactionHistoryTab";
 import WalletTab from "./components/tabs/WalletTab";
 import SettingsTab from "./components/tabs/SettingsTab";
-import { getPurchasedLicenses, pauseAutoRenew, resumeAutoRenew } from "@/services/api";
+import {
+  getPurchasedLicenses,
+  getAutoRenewSubscriptions,
+  enableAutoRenewSubscription,
+  pauseAutoRenew,
+  resumeAutoRenew,
+} from "@/services/api";
 import { cn } from "@/components/ui/utils";
 
 const HEADER_HEIGHT = "8rem";
@@ -114,6 +120,78 @@ export default function UserProfilePage() {
   // Purchased Licenses state
   const [purchasedLicenses, setPurchasedLicenses] = useState<PurchasedLicense[]>([]);
   const [licensesLoading, setLicensesLoading] = useState(true);
+  const [, setSubscriptions] = useState<AutoRenewSubscription[]>([]);
+
+  const loadLicensesAndSubscriptions = useCallback(
+    async (options: { silent?: boolean } = {}) => {
+      const { silent = false } = options;
+
+      if (!access_token) {
+        setPurchasedLicenses([]);
+        setSubscriptions([]);
+        setLicensesLoading(false);
+        return;
+      }
+
+      try {
+        if (!silent) {
+          setLicensesLoading(true);
+        }
+        const [licensesData, subscriptionsData]: [
+          PurchasedLicense[],
+          AutoRenewSubscription[]
+        ] = await Promise.all([
+          getPurchasedLicenses(access_token),
+          getAutoRenewSubscriptions(access_token),
+        ]);
+
+        const subscriptionsByLicense = new Map<string, AutoRenewSubscription>();
+        const subscriptionsById = new Map<string, AutoRenewSubscription>();
+
+        subscriptionsData.forEach((subscription) => {
+          subscriptionsById.set(subscription.subscription_id, subscription);
+          if (subscription.current_license_id) {
+            subscriptionsByLicense.set(subscription.current_license_id, subscription);
+          }
+          if (subscription.license_id) {
+            subscriptionsByLicense.set(subscription.license_id, subscription);
+          }
+        });
+
+        const mergedLicenses = licensesData.map((license) => {
+          const matchedSubscription =
+            license.subscription ??
+            (license.subscription_id
+              ? subscriptionsById.get(license.subscription_id) ?? null
+              : null) ??
+            subscriptionsByLicense.get(license.license_id) ??
+            null;
+
+          const subscriptionId =
+            license.subscription_id ??
+            matchedSubscription?.subscription_id ??
+            matchedSubscription?.id ??
+            null;
+
+          return {
+            ...license,
+            subscription: matchedSubscription,
+            subscription_id: subscriptionId,
+          };
+        });
+
+        setPurchasedLicenses(mergedLicenses);
+        setSubscriptions(subscriptionsData);
+      } catch (error) {
+        console.error("Failed to fetch licenses:", error);
+      } finally {
+        if (!silent) {
+          setLicensesLoading(false);
+        }
+      }
+    },
+    [access_token]
+  );
 
   // Sample data for trading bots (keep for backward compatibility with Sidebar)
   const [tradingBots] = useState<TradingBot[]>([
@@ -192,27 +270,10 @@ export default function UserProfilePage() {
     setSelectedDate(getInitialBirthDate());
   }, [getInitialBirthDate]);
 
-  // Fetch purchased licenses
+  // Fetch purchased licenses + auto renew subscriptions
   useEffect(() => {
-    const fetchLicenses = async () => {
-      if (!access_token) {
-        setLicensesLoading(false);
-        return;
-      }
-
-      try {
-        setLicensesLoading(true);
-        const licenses = await getPurchasedLicenses(access_token);
-        setPurchasedLicenses(licenses);
-      } catch (error) {
-        console.error("Failed to fetch licenses:", error);
-      } finally {
-        setLicensesLoading(false);
-      }
-    };
-
-    fetchLicenses();
-  }, [access_token]);
+    loadLicensesAndSubscriptions();
+  }, [loadLicensesAndSubscriptions]);
 
   useEffect(() => {
     if (!isEditing) {
@@ -441,6 +502,7 @@ export default function UserProfilePage() {
     setPaymentStatus("waiting");
   };
 
+  // Handle enabling auto-renew subscription for a license
   // Handle auto-renew toggle
   const handleToggleAutoRenew = async (licenseId: string, currentValue: boolean) => {
     if (!access_token) return;
@@ -453,7 +515,10 @@ export default function UserProfilePage() {
       }
 
       // Get subscription ID from either flat or nested format
-      const subscriptionId = license.subscription_id || license.subscription?.subscription_id;
+      const subscriptionId =
+        license.subscription_id ||
+        license.subscription?.subscription_id ||
+        license.subscription?.id;
 
       if (!subscriptionId) {
         console.error("No subscription found for this license");
@@ -470,10 +535,38 @@ export default function UserProfilePage() {
       }
 
       // Refresh licenses list
-      const updatedLicenses = await getPurchasedLicenses(access_token);
-      setPurchasedLicenses(updatedLicenses);
+      await loadLicensesAndSubscriptions({ silent: true });
     } catch (error) {
       console.error("Failed to toggle auto-renew:", error);
+    }
+  };
+
+  const handleEnableAutoRenew = async (license: PurchasedLicense) => {
+    if (!access_token) return;
+
+    try {
+      const price =
+        license.auto_renew_price ??
+        license.purchase_price ??
+        0;
+      const cycleDays =
+        license.license_days && license.license_days > 0
+          ? license.license_days
+          : 30;
+
+      await enableAutoRenewSubscription(access_token, {
+        symbol_id: license.symbol_id,
+        price,
+        cycle_days: cycleDays,
+        payment_method: "wallet",
+        grace_period_hours: 12,
+        retry_interval_minutes: 60,
+        max_retry_attempts: 3,
+      });
+
+      await loadLicensesAndSubscriptions({ silent: true });
+    } catch (error) {
+      console.error("Failed to enable auto-renew:", error);
     }
   };
 
@@ -641,6 +734,7 @@ export default function UserProfilePage() {
             <PurchasedLicensesTab
               licenses={purchasedLicenses}
               onToggleAutoRenew={handleToggleAutoRenew}
+              onEnableAutoRenew={handleEnableAutoRenew}
               loading={licensesLoading}
             />
 
@@ -655,6 +749,7 @@ export default function UserProfilePage() {
               walletBalance={walletBalance}
               setWalletBalance={setWalletBalance}
               formatCurrency={formatCurrency}
+              purchasedLicenses={purchasedLicenses}
             />
           </Tabs>
           </main>
