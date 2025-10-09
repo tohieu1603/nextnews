@@ -2,9 +2,22 @@ import { Users } from "lucide-react";
 import { Badge } from "@/components/ui/bagde";
 import { Progress } from "@/components/ui/progress";
 
+interface Shareholder {
+  share_holder: string;
+  share_own_percent: number;
+}
+
+interface ShareholderData {
+  symbolData?: {
+    company?: {
+      shareholders?: Shareholder[];
+    };
+  };
+}
+
 interface ShareholderStructureProps {
-  shareholderData: any;
-  data?: any;
+  shareholderData: unknown;
+  data?: ShareholderData;
 }
 
 export function ShareholderStructure({
@@ -69,7 +82,7 @@ export function ShareholderStructure({
                     {pct}%
                   </div>
                   <Progress
-                    value={parseFloat(largest?.share_own_percent)}
+                    value={largest?.share_own_percent ?? 0}
                     className="h-1.5"
                   />
                 </div>
@@ -81,7 +94,7 @@ export function ShareholderStructure({
                     {pct1}%
                   </div>
                   <Progress
-                    value={parseFloat(largest1?.share_own_percent)}
+                    value={largest1?.share_own_percent ?? 0}
                     className="h-1.5"
                   />
                 </div>
@@ -93,7 +106,7 @@ export function ShareholderStructure({
                     {pct2}%
                   </div>
                   <Progress
-                    value={parseFloat(largest2?.share_own_percent)}
+                    value={largest2?.share_own_percent ?? 0}
                     className="h-1.5"
                   />
                 </div>
@@ -120,7 +133,7 @@ export function ShareholderStructure({
                       </div>
                     </div>
                     <Progress
-                      value={parseFloat(largest3?.share_own_percent)}
+                      value={largest3?.share_own_percent ?? 0}
                       className="h-1.5"
                     />
                   </div>
@@ -142,7 +155,7 @@ export function ShareholderStructure({
                       </div>
                     </div>
                     <Progress
-                      value={parseFloat(largest4?.share_own_percent)}
+                      value={largest4?.share_own_percent ?? 0}
                       className="h-1.5"
                     />
                   </div>
@@ -164,7 +177,7 @@ export function ShareholderStructure({
                       </div>
                     </div>
                     <Progress
-                      value={parseFloat(largest5?.share_own_percent)}
+                      value={largest5?.share_own_percent ?? 0}
                       className="h-1.5"
                     />
                   </div>

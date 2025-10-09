@@ -44,17 +44,6 @@ export default function Home() {
     setSelectedArticle(1);
   };
 
-  if (currentView === "news-detail") {
-    return (
-      <NewsDetailPage
-        articleId={selectedArticle}
-        onBack={handleBackToHome}
-        onViewDetails={handleViewDetails}
-      />
-    );
-  }
-
-
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -69,6 +58,16 @@ export default function Home() {
     const interval = setInterval(updateClock, 1000); // update mỗi giây
     return () => clearInterval(interval);
   }, []);
+
+  if (currentView === "news-detail") {
+    return (
+      <NewsDetailPage
+        articleId={selectedArticle}
+        onBack={handleBackToHome}
+        onViewDetails={handleViewDetails}
+      />
+    );
+  }
 
   if (currentView === "deep-analysis") {
     return <DeepAnalysisPage onBack={handleBackToHome} />;
@@ -375,9 +374,9 @@ export default function Home() {
                 <span>Liên kết nhanh</span>
               </h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="/" className="hover:text-cyan-400">Trang chủ</a></li>
-                <li><a href="/" className="hover:text-cyan-400">Tin tức</a></li>
-                <li><a href="/" className="hover:text-cyan-400">Tìm kiếm mã</a></li>
+                <li><a  className="hover:text-cyan-400">Trang chủ</a></li>
+                <li><a  className="hover:text-cyan-400">Tin tức</a></li>
+                <li><a  className="hover:text-cyan-400">Tìm kiếm mã</a></li>
 
               </ul>
             </div>

@@ -309,7 +309,35 @@ export default function PurchasedLicensesTab({
                     </div>
                     {getStatusBadge(license)}
                   </div>
+                  <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                    <p className="text-xs sm:text-sm text-slate-400 mb-1">Thanh toán</p>
+                    <p className="text-xs sm:text-sm font-medium text-white truncate">
+                      {getPaymentMethodLabel(license.payment_method)}
+                    </p>
+                  </div>
+                </div>
 
+                {/* Auto-renew toggle - only show for non-lifetime active licenses with subscription */}
+                {!license.is_lifetime &&
+                 license.is_active &&
+                 license.status === "active" &&
+                 license.subscription && (
+                  <div className="mt-3 pt-3 border-t border-slate-600/30">
+                    <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/40 transition-colors">
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+                          license.subscription?.is_active || license.subscription?.status === "active"
+                            ? "bg-emerald-500/20"
+                            : "bg-slate-600/30"
+                        )}>
+                          <RotateCw className={cn(
+                            "w-4 h-4",
+                            license.subscription?.is_active || license.subscription?.status === "active"
+                              ? "text-emerald-400"
+                              : "text-slate-400"
+                          )} />
+=======
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
                     <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
                       <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
@@ -341,6 +369,22 @@ export default function PurchasedLicensesTab({
                             {formatDate(license.end_at)}
                           </p>
                         </div>
+                      </div>
+                      <Switch
+                        checked={license.subscription?.is_active || license.subscription?.status === "active"}
+                        onCheckedChange={(checked) =>
+                          onToggleAutoRenew(license.license_id, license.subscription?.is_active || license.subscription?.status === "active")
+                        }
+                        className="data-[state=checked]:bg-emerald-500 flex-shrink-0 ml-2"
+                      />
+                    </div>
+                    {(license.subscription?.is_active || license.subscription?.status === "active") && (
+                      <div className="mt-2 p-2.5 bg-emerald-500/10 rounded-lg border border-emerald-400/20">
+                        <p className="text-xs text-emerald-300 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>Đảm bảo ví có đủ tiền để tự động gia hạn</span>
+                        </p>
+                      </div>
                         <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
                           <p className="text-xs sm:text-sm text-slate-400 mb-1">
                             Thời hạn

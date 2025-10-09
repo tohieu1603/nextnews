@@ -1,5 +1,5 @@
-"use client";
-import React, { useState } from "react";
+﻿"use client";
+import React, { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,317 +12,314 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  getEconomicCalendar,
+  EconomicCalendarApiEvent,
+} from "@/services/api";
 
 const EconomicBarChart = dynamic(() => import("./EconomicBarChart"), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-      Đang tải biểu đồ…
+      Dang tai bieu do...
     </div>
   ),
 });
 
+type Importance = "low" | "medium" | "high";
+
 interface EconomicEvent {
-  id: number;
+  id: string;
   date: string;
-  time: string;
+  time: string | null;
+  displayTime: string;
+  sortValue: number;
   country: string;
-  countryCode: string;
-  countryFlag: string;
-  event: string;
-  importance: "low" | "medium" | "high";
-  forecast: string;
-  previous: string;
-  actual?: string;
-  // category: "economic" | "earnings" | "revenue" | "dividends";
-  series?: { label: string; value: number }[];
-  description?: string;
-  source?: string;
+  currency?: string;
+  importance: Importance;
+  title: string;
+  actual: string | null;
+  forecast: string | null;
+  previous: string | null;
+  sourceUrl?: string | null;
+  allDay: boolean;
 }
 
-export function EconomicCalendar() {
-  // const [activeFilter, setActiveFilter] = useState<
-  //   "economic" | "earnings" | "revenue" | "dividends"
-  // >("economic");
-  const [selectedDate, setSelectedDate] = useState("2025-08-23");
+interface WeekDay {
+  date: string;
+  label: string;
+  eventCount: number;
+}
 
-  // Mock data for the week - exactly matching the image
-  const weekDays = [
-    {
-      date: "2025-08-23",
-      day: "T7 23",
-      economic: 4,
-      earnings: 10,
-      dividends: 1,
-    },
-    {
-      date: "2025-08-24",
-      day: "CN 24",
-      economic: 3,
-      earnings: 4,
-      dividends: 2,
-    },
-    {
-      date: "2025-08-25",
-      day: "T2 25",
-      economic: 31,
-      earnings: 25,
-      dividends: 319,
-    },
-    {
-      date: "2025-08-26",
-      day: "T3 26",
-      economic: 30,
-      earnings: 477,
-      dividends: 499,
-    },
-    {
-      date: "2025-08-27",
-      day: "T4 27",
-      economic: 40,
-      earnings: 1427,
-      dividends: 305,
-    },
-    {
-      date: "2025-08-28",
-      day: "T5 28",
-      economic: 53,
-      earnings: 1317,
-      dividends: 1030,
-    },
-    {
-      date: "2025-08-29",
-      day: "T6 29",
-      economic: 104,
-      earnings: 276,
-      dividends: 2291,
-    },
-  ];
+const weekdayShort = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const weekdayFull = [
+  "Chủ nhật",
+  "Thứ Hai",
+  "Thứ Ba",
+  "Thứ Tư",
+  "Thứ Năm",
+  "Thứ Sáu",
+  "Thứ Bảy",
+];
 
-  // Economic events matching the exact data from the image
-  const economicEvents: EconomicEvent[] = [
-    // Added sample events for Sat, Aug 23, 2025
-    {
-      id: 101,
-      date: "2025-08-23",
-      time: "08:30",
-      country: "Japan",
-      countryCode: "JP",
-      countryFlag: "🇯🇵",
-      event: "CPI YoY Flash",
-      importance: "medium",
-      forecast: "2.7%",
-      previous: "2.5%",
-      actual: "2.6%",
-      // category: "economic",
-      description: "Diễn biến chỉ số giá tiêu dùng sớm theo năm.",
-      source: "Statistics Bureau",
-      series: Array.from({ length: 16 }, (_, i) => ({
-        label: new Date(2024, 11 + i, 1).toLocaleString("en-US", {
-          month: "short",
-          year: "numeric",
-        }),
-        value: 60 + ((i * 7) % 35),
-      })),
-    },
-    {
-      id: 102,
-      date: "2025-08-23",
-      time: "10:00",
-      country: "Germany",
-      countryCode: "DE",
-      countryFlag: "🇩🇪",
-      event: "Manufacturing PMI Flash",
-      importance: "high",
-      forecast: "43.2",
-      previous: "42.8",
-      actual: "43.0",
-      // category: "economic",
-      description: "PMI sản xuất sơ bộ phản ánh hoạt động nhà máy.",
-      source: "S&P Global",
-      series: Array.from({ length: 14 }, (_, i) => ({
-        label: new Date(2024, 10 + i, 1).toLocaleString("en-US", {
-          month: "short",
-          year: "numeric",
-        }),
-        value: 58 + ((i * 5) % 30),
-      })),
-    },
-    {
-      id: 103,
-      date: "2025-08-23",
-      time: "12:00",
-      country: "United States",
-      countryCode: "US",
-      countryFlag: "🇺🇸",
-      event: "Existing Home Sales",
-      importance: "medium",
-      forecast: "3.95M",
-      previous: "3.89M",
-      actual: "—",
-      // category: "economic",
-      description: "Doanh số nhà hiện hữu của Hoa Kỳ theo tháng.",
-      source: "NAR",
-    },
-    {
-      id: 104,
-      date: "2025-08-23",
-      time: "14:00",
-      country: "United Kingdom",
-      countryCode: "GB",
-      countryFlag: "🇬🇧",
-      event: "GfK Consumer Confidence",
-      importance: "low",
-      forecast: "-18",
-      previous: "-19",
-      actual: "—",
-      // category: "economic",
-      description: "Niềm tin người tiêu dùng Vương quốc Anh.",
-      source: "GfK",
-    },
-    {
-      id: 1,
-      date: "2025-08-25",
-      time: "07:00",
-      country: "United Kingdom",
-      countryCode: "GB",
-      countryFlag: "🇬🇧",
-      event: "Late Summer Bank Holiday",
-      importance: "low",
-      forecast: "—",
-      previous: "—",
-      actual: "—",
-      // category: "economic",
-    },
-    {
-      id: 2,
-      date: "2025-08-25",
-      time: "09:30",
-      country: "South Korea",
-      countryCode: "KR",
-      countryFlag: "🇰🇷",
-      event: "5-Year KTB Auction",
-      importance: "low",
-      forecast: "—",
-      previous: "2.625%",
-      actual: "2.58%",
-      // category: "economic",
-    },
-    {
-      id: 3,
-      date: "2025-08-25",
-      time: "12:00",
-      country: "Japan",
-      countryCode: "JP",
-      countryFlag: "🇯🇵",
-      event: "Coincident Index Final",
-      importance: "medium",
-      forecast: "—",
-      previous: "116",
-      actual: "116.7",
-      // category: "economic",
-      description: "Chỉ số trùng hợp kinh tế của Nhật Bản.",
-      source: "Cabinet Office",
-    },
-    {
-      id: 4,
-      date: "2025-08-25",
-      time: "12:00",
-      country: "Japan",
-      countryCode: "JP",
-      countryFlag: "🇯🇵",
-      event: "Leading Economic Index Final",
-      importance: "medium",
-      forecast: "106.1",
-      previous: "104.8",
-      actual: "105.6",
-      // category: "economic",
-      description: "Chỉ số dẫn dắt kinh tế Nhật Bản (final).",
-      source: "Cabinet Office",
-    },
-    {
-      id: 5,
-      date: "2025-08-25",
-      time: "13:00",
-      country: "Saudi Arabia",
-      countryCode: "SA",
-      countryFlag: "🇸🇦",
-      event: "Balance of Trade",
-      importance: "medium",
-      forecast: "—",
-      previous: "6.7 Bln",
-      actual: "22.1 Bln",
-      // category: "economic",
-      description: "Cán cân thương mại hàng hóa của Ả Rập Xê Út.",
-      source: "GASTAT",
-    },
-    {
-      id: 6,
-      date: "2025-08-25",
-      time: "13:00",
-      country: "Saudi Arabia",
-      countryCode: "SA",
-      countryFlag: "🇸🇦",
-      event: "Exports",
-      importance: "low",
-      forecast: "—",
-      previous: "—",
-      actual: "92.1 Bln",
-      // category: "economic",
-      description: "Giá trị xuất khẩu hàng hóa.",
-      source: "GASTAT",
-    },
-    {
-      id: 7,
-      date: "2025-08-25",
-      time: "13:00",
-      country: "Saudi Arabia",
-      countryCode: "SA",
-      countryFlag: "🇸🇦",
-      event: "Imports",
-      importance: "low",
-      forecast: "—",
-      previous: "—",
-      actual: "70 Bln",
-      // category: "economic",
-      description: "Giá trị nhập khẩu hàng hóa.",
-      source: "GASTAT",
-    },
-  ];
+const importanceColors: Record<Importance, string> = {
+  low: "bg-green-500",
+  medium: "bg-yellow-500",
+  high: "bg-red-500",
+};
 
-  const getImportanceColor = (importance: string) => {
-    switch (importance) {
-      case "high":
-        return "bg-red-500";
-      case "medium":
-        return "bg-yellow-500";
-      case "low":
-        return "bg-green-500";
-      default:
-        return "bg-gray-500";
-    }
+const importanceText: Record<Importance, string> = {
+  low: "Thấp",
+  medium: "Trung bình",
+  high: "Cao",
+};
+
+const formatDateISO = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseISODate = (value: string): Date => {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
+
+const addDays = (date: Date, days: number): Date => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
+const getStartOfWeek = (date: Date): Date => {
+  const start = new Date(date);
+  const day = start.getDay();
+  const distance = (day + 6) % 7;
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - distance);
+  return start;
+};
+
+const formatWeekdayLabel = (dateStr: string): string => {
+  const date = parseISODate(dateStr);
+  const short = weekdayShort[date.getDay()];
+  return `${short} ${String(date.getDate()).padStart(2, "0")}`;
+};
+
+const formatLongDayLabel = (dateStr: string): string => {
+  const date = parseISODate(dateStr);
+  const dow = weekdayFull[date.getDay()];
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  return `${dow}, ${day} Tháng ${month}, ${year}`;
+};
+
+const formatRangeLabel = (startISO: string, endISO: string): string => {
+  const start = parseISODate(startISO);
+  const end = parseISODate(endISO);
+  if (
+    start.getFullYear() === end.getFullYear() &&
+    start.getMonth() === end.getMonth()
+  ) {
+    return `${start.getDate()}-${end.getDate()} Tháng ${
+      start.getMonth() + 1
+    }, ${start.getFullYear()}`;
+  }
+  const startLabel = `${String(start.getDate()).padStart(2, "0")}/${String(
+    start.getMonth() + 1
+  ).padStart(2, "0")}/${start.getFullYear()}`;
+  const endLabel = `${String(end.getDate()).padStart(2, "0")}/${String(
+    end.getMonth() + 1
+  ).padStart(2, "0")}/${end.getFullYear()}`;
+  return `${startLabel} - ${endLabel}`;
+};
+
+const mapImportance = (value: number): Importance => {
+  if (value >= 3) return "high";
+  if (value === 2) return "medium";
+  return "low";
+};
+
+const toSortValue = (
+  dateStr: string,
+  time: string | null,
+  allDay: boolean
+): number => {
+  const date = parseISODate(dateStr);
+  if (allDay) {
+    date.setHours(0, 0, 0, 0);
+    return date.getTime();
+  }
+  if (!time) {
+    date.setHours(23, 59, 59, 0);
+    return date.getTime();
+  }
+  const [hour, minute] = time.split(":").map(Number);
+  date.setHours(hour, minute, 0, 0);
+  return date.getTime();
+};
+
+const normalizeEvent = (item: EconomicCalendarApiEvent): EconomicEvent => {
+  const displayTime = item.all_day ? "Cả ngày" : item.time ?? "--";
+  return {
+    id: item.event_id,
+    date: item.date,
+    time: item.time ?? null,
+    displayTime,
+    sortValue: toSortValue(item.date, item.time ?? null, item.all_day),
+    country: item.country,
+    currency: item.currency || undefined,
+    importance: mapImportance(item.importance),
+    title: item.title,
+    actual: item.actual,
+    forecast: item.forecast,
+    previous: item.previous,
+    sourceUrl: item.source_url,
+    allDay: item.all_day,
   };
+};
 
-  const filteredEvents = economicEvents.filter(
-    (event) => event.date === selectedDate
+const formatCellValue = (value: string | null | undefined): string =>
+  value && value.trim().length > 0 ? value : "--";
+
+const fallbackSeries = [
+  { label: "T1", actual: 0.2, forecast: 0.24 },
+  { label: "T2", actual: 0.27, forecast: 0.25 },
+  { label: "T3", actual: 0.22, forecast: 0.23 },
+  { label: "T4", actual: 0.3, forecast: 0.28 },
+  { label: "T5", actual: 0.26, forecast: 0.27 },
+  { label: "T6", actual: 0.21, forecast: 0.22 },
+  { label: "T7", actual: 0.18, forecast: 0.2 },
+  { label: "T8", actual: 0.25, forecast: 0.26 },
+  { label: "T9", actual: 0.24, forecast: 0.25 },
+  { label: "T10", actual: 0.23, forecast: 0.24 },
+  { label: "T11", actual: 0.21, forecast: 0.23 },
+  { label: "T12", actual: 0.2, forecast: 0.22 },
+];
+
+export function EconomicCalendar() {
+  const [rangeStartISO, setRangeStartISO] = useState<string>(() => {
+    const today = new Date();
+    return formatDateISO(getStartOfWeek(today));
+  });
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const today = new Date();
+    return formatDateISO(today);
+  });
+  const [events, setEvents] = useState<EconomicEvent[]>([]);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalEvents, setTotalEvents] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchCalendar = async () => {
+      setLoading(true);
+      setError(null);
+
+      const startDate = parseISODate(rangeStartISO);
+      const endDate = addDays(startDate, 6);
+      const response = await getEconomicCalendar(
+        formatDateISO(startDate),
+        formatDateISO(endDate)
+      );
+
+      if ("message" in response) {
+        setEvents([]);
+        setTotalEvents(0);
+        setError(response.message ?? "Unknown error");
+        setLoading(false);
+        return;
+      }
+
+      const mapped = response.events
+        .map(normalizeEvent)
+        .sort((a, b) => a.sortValue - b.sortValue);
+
+      setEvents(mapped);
+      setTotalEvents(response.total);
+      setError(null);
+      setLoading(false);
+    };
+
+    fetchCalendar();
+  }, [rangeStartISO]);
+
+  const weekDays = useMemo<WeekDay[]>(() => {
+    const startDate = parseISODate(rangeStartISO);
+    const counts = events.reduce<Record<string, number>>((acc, event) => {
+      acc[event.date] = (acc[event.date] ?? 0) + 1;
+      return acc;
+    }, {});
+    return Array.from({ length: 7 }, (_, index) => {
+      const current = addDays(startDate, index);
+      const dateStr = formatDateISO(current);
+      return {
+        date: dateStr,
+        label: formatWeekdayLabel(dateStr),
+        eventCount: counts[dateStr] ?? 0,
+      };
+    });
+  }, [rangeStartISO, events]);
+
+  const rangeLabel = useMemo(() => {
+    const start = rangeStartISO;
+    const end = formatDateISO(addDays(parseISODate(rangeStartISO), 6));
+    return formatRangeLabel(start, end);
+  }, [rangeStartISO]);
+
+  const filteredEvents = useMemo(
+    () => events.filter((event) => event.date === selectedDate),
+    [events, selectedDate]
   );
 
-  // Expandable event details state: allow multiple open
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-  const toggleExpand = (id: number) => {
+  const updateRange = (startDate: Date, selected?: Date) => {
+    const startISO = formatDateISO(startDate);
+    const selectedISO = formatDateISO(selected ?? startDate);
+    setRangeStartISO(startISO);
+    setSelectedDate(selectedISO);
+    setExpandedIds(new Set());
+  };
+
+  const handlePrevWeek = () => {
+    const current = parseISODate(rangeStartISO);
+    updateRange(addDays(current, -7));
+  };
+
+  const handleNextWeek = () => {
+    const current = parseISODate(rangeStartISO);
+    updateRange(addDays(current, 7));
+  };
+
+  const handleToday = () => {
+    const now = new Date();
+    updateRange(getStartOfWeek(now), now);
+  };
+
+  const getImportanceColor = (importance: Importance) =>
+    importanceColors[importance];
+
+  const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
-  // No prefetching needed for placeholder chart
+
+  const selectedDayLabel = selectedDate
+    ? formatLongDayLabel(selectedDate)
+    : "Chua chon ngay";
 
   return (
     <Card className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 border border-cyan-400/30 backdrop-blur-sm shadow-lg">
       <CardContent className="p-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>
@@ -333,6 +330,8 @@ export function EconomicCalendar() {
               variant="ghost"
               size="icon"
               className="text-slate-400 hover:text-white hover:bg-slate-700/50"
+              onClick={handlePrevWeek}
+              aria-label="Tuan truoc"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
@@ -340,6 +339,7 @@ export function EconomicCalendar() {
               variant="ghost"
               size="sm"
               className="text-slate-300 hover:text-white hover:bg-slate-700/50"
+              onClick={handleToday}
             >
               Hôm nay
             </Button>
@@ -347,153 +347,42 @@ export function EconomicCalendar() {
               variant="ghost"
               size="icon"
               className="text-slate-400 hover:text-white hover:bg-slate-700/50"
+              onClick={handleNextWeek}
+              aria-label="Tuần sau"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
-            <div className="text-base text-slate-400 ml-2">
-              23–29 Tháng 8, 2025
-            </div>
+            <div className="text-base text-slate-400 ml-2">{rangeLabel}</div>
           </div>
         </div>
 
-        {/* Week Days Header */}
-        {/* Week selector: show 4 columns on mobile with horizontal scroll; full 7 on md+ */}
         <div className="flex md:grid md:grid-cols-7 overflow-x-auto md:overflow-visible gap-1 mb-6 bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-lg p-2 snap-x snap-mandatory">
-          {weekDays.map((day) => (
-            <div
-              key={day.date}
-              className={`flex items-center justify-center p-3 rounded-md text-center text-base cursor-pointer transition-all basis-1/4 shrink-0 md:basis-auto md:shrink snap-start ${
-                selectedDate === day.date
-                  ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
-                  : "text-slate-300 hover:bg-slate-600/50"
-              }`}
-              onClick={() => setSelectedDate(day.date)}
-            >
-              <div className="font-semibold my-1">{day.day}</div>
-              {/* <div className="space-y-1 text-sm">
-                <div className="flex items-center justify-between">
-                  <span
-                    className={
-                      selectedDate === day.date
-                        ? "text-white"
-                        : "text-slate-400"
-                    }
-                  >
-                    Kinh tế
-                  </span>
-                  <span
-                    className={
-                      selectedDate === day.date ? "text-white" : "text-cyan-400"
-                    }
-                  >
-                    {day.economic}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span
-                    className={
-                      selectedDate === day.date
-                        ? "text-white"
-                        : "text-slate-400"
-                    }
-                  >
-                    Lợi nhuận
-                  </span>
-                  <span
-                    className={
-                      selectedDate === day.date ? "text-white" : "text-cyan-400"
-                    }
-                  >
-                    {day.earnings}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span
-                    className={
-                      selectedDate === day.date
-                        ? "text-white"
-                        : "text-slate-400"
-                    }
-                  >
-                    Cổ tức
-                  </span>
-                  <span
-                    className={
-                      selectedDate === day.date ? "text-white" : "text-cyan-400"
-                    }
-                  >
-                    {day.dividends}
-                  </span>
-                </div>
-              </div> */}
-            </div>
-          ))}
-        </div>
-
-        {/* Filter Tabs */}
-        {/* <div className="flex flex-wrap items-center gap-1 md:gap-2 mb-6 bg-gradient-to-r from-slate-700/40 to-slate-600/40 rounded-lg p-1">
-          {(["economic", "earnings", "revenue", "dividends"] as const).map(
-            (filter) => (
-              <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={`px-3 sm:px-4 py-2 rounded-md text-base font-medium transition-all capitalize shrink-0 whitespace-nowrap ${
-                  activeFilter === filter
+          {weekDays.map((day) => {
+            const isSelected = selectedDate === day.date;
+            return (
+              <div
+                key={day.date}
+                className={`flex flex-col items-center justify-center p-3 rounded-md text-center text-base cursor-pointer transition-all basis-1/4 shrink-0 md:basis-auto md:shrink snap-start ${
+                  isSelected
                     ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
-                    : "text-slate-300 hover:text-white hover:bg-slate-600/50"
+                    : "text-slate-300 hover:bg-slate-600/50"
                 }`}
+                onClick={() => {
+                  setSelectedDate(day.date);
+                  setExpandedIds(new Set());
+                }}
               >
-                {
-                  {
-                    economic: "Kinh tế",
-                    earnings: "Lợi nhuận",
-                    revenue: "Doanh thu",
-                    dividends: "Cổ tức",
-                  }[filter]
-                }
-              </button>
-            )
-          )}
-          <div className="w-full md:w-auto md:ml-auto mt-2 md:mt-0 flex items-center gap-2 justify-end">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-slate-400 hover:text-white hover:bg-slate-600/50"
-            >
-              <BarChart3 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-slate-400 hover:text-white hover:bg-slate-600/50"
-            >
-              <Filter className="w-4 h-4" />
-            </Button>
-            <div className="text-base text-slate-400">Tất cả danh mục</div>
-          </div>
-        </div> */}
-
-        {/* Selected Date Info */}
-        <div className="mb-4 text-base text-slate-400">
-          {(() => {
-            const d = new Date(`${selectedDate}T00:00:00`);
-            const days = [
-              "Chủ nhật",
-              "Thứ Hai",
-              "Thứ Ba",
-              "Thứ Tư",
-              "Thứ Năm",
-              "Thứ Sáu",
-              "Thứ Bảy",
-            ];
-            const dow = days[d.getDay()];
-            const day = d.getDate();
-            const month = d.getMonth() + 1;
-            return `${dow}, ${day} Tháng ${month}`;
-          })()}
+                <div className="font-semibold my-1">{day.label}</div>
+                <div className="text-xs text-slate-300">
+                  {day.eventCount} Sự kiện
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Events Table - Exact format matching the image */}
+        <div className="mb-4 text-base text-slate-400">{selectedDayLabel}</div>
+
         <div className="bg-gradient-to-r from-slate-700/20 to-slate-600/20 rounded-lg border border-blue-400/20 overflow-hidden">
           <Table>
             <TableHeader>
@@ -519,159 +408,173 @@ export function EconomicCalendar() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEvents.map((event) => (
-                <React.Fragment key={event.id}>
-                  <TableRow
-                    key={event.id}
-                    className="border-b border-blue-400/10 hover:bg-slate-600/20 transition-colors cursor-pointer"
-                    onClick={() => toggleExpand(event.id)}
+              {loading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="py-10 text-center text-slate-400"
                   >
-                    <TableCell className="text-slate-300 text-base py-4 pl-4 align-top">
-                      {event.time}
-                    </TableCell>
-                    <TableCell className="py-4 align-top">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{event.countryFlag}</span>
-                        <span className="text-slate-200 text-sm font-medium">
-                          {event.country}
-                        </span>
-                        <div
-                          className={`ml-2 w-2 h-2 rounded-full ${getImportanceColor(
-                            event.importance
-                          )}`}
-                        ></div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-slate-200 text-base py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{event.event}</span>
-                        <ChevronDown
-                          className={`w-3 h-3 transition-transform text-slate-500 ${
-                            expandedIds.has(event.id)
-                              ? "rotate-180"
-                              : "rotate-0"
-                          }`}
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center py-4">
-                      <span
-                        className={`text-base ${
-                          event.actual && event.actual !== "—"
-                            ? "text-white font-medium"
-                            : "text-slate-500"
-                        }`}
+                    Đang tải dữ liệu...
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="py-10 text-center text-red-400"
+                  >
+                    {error}
+                  </TableCell>
+                </TableRow>
+              ) : filteredEvents.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="py-10 text-center text-slate-400"
+                  >
+                    Không có sự kiện nào trong ngày nay.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredEvents.map((event) => {
+                  const actualValue = formatCellValue(event.actual);
+                  return (
+                    <React.Fragment key={event.id}>
+                      <TableRow
+                        className="border-b border-blue-400/10 hover:bg-slate-600/20 transition-colors cursor-pointer"
+                        onClick={() => toggleExpand(event.id)}
                       >
-                        {event.actual}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center py-4">
-                      <span className="text-base text-slate-400">
-                        {event.forecast}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center py-4">
-                      <span className="text-base text-slate-400">
-                        {event.previous}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow className="border-b border-blue-400/10">
-                    <TableCell colSpan={6} className="p-0">
-                      <div
-                        className={`overflow-hidden transition-all duration-300 ease-out ${
-                          expandedIds.has(event.id)
-                            ? "max-h-[28rem] opacity-100"
-                            : "max-h-0 opacity-0"
-                        }`}
-                      >
-                        <div
-                          className={`p-4 bg-slate-700/30 transform transition-transform duration-300 ${
-                            expandedIds.has(event.id)
-                              ? "translate-y-0"
-                              : "-translate-y-2"
-                          }`}
-                        >
-                          <div className="text-slate-300 text-sm mb-3">
-                            {event.description ||
-                              "Đánh giá ngắn về bối cảnh sự kiện."}
+                        <TableCell className="text-slate-300 text-base py-4 pl-4 align-top">
+                          {event.displayTime}
+                        </TableCell>
+                        <TableCell className="py-4 align-top">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-200 text-sm font-medium">
+                              {event.country}
+                            </span>
+                            {event.currency ? (
+                              <span className="text-xs text-cyan-300 border border-cyan-400/40 rounded px-1 py-0.5">
+                                {event.currency}
+                              </span>
+                            ) : null}
+                            <div
+                              className={`ml-2 w-2 h-2 rounded-full ${getImportanceColor(
+                                event.importance
+                              )}`}
+                            ></div>
                           </div>
-                          <div className="relative bg-slate-800/40 border border-blue-400/20 rounded-md p-3 h-64">
-                            {expandedIds.has(event.id) &&
-                              (() => {
-                                const series =
-                                  event.series && event.series.length > 0
-                                    ? event.series
-                                    : [
-                                        {
-                                          label: "thg 1 2025",
-                                          actual: 0.01,
-                                          forecast: 0.02,
-                                        },
-                                        {
-                                          label: "thg 2 2025",
-                                          actual: 0.26,
-                                          forecast: 0.18,
-                                        },
-                                        {
-                                          label: "thg 3 2025",
-                                          actual: 0.15,
-                                          forecast: 0.16,
-                                        },
-                                        {
-                                          label: "thg 4 2025",
-                                          actual: 0.28,
-                                          forecast: 0.2,
-                                        },
-                                        {
-                                          label: "thg 5 2025",
-                                          actual: 0.27,
-                                          forecast: 0.19,
-                                        },
-                                        {
-                                          label: "thg 6 2025",
-                                          actual: 0.08,
-                                          forecast: 0.18,
-                                        },
-                                        {
-                                          label: "thg 7 2025",
-                                          actual: 0.19,
-                                          forecast: 0.19,
-                                        },
-                                        {
-                                          label: "thg 8 2025",
-                                          actual: 0.01,
-                                          forecast: 0.12,
-                                        },
-                                        {
-                                          label: "thg 9 2025",
-                                          actual: null,
-                                          forecast: 0.09,
-                                        }, // chỉ dự báo
-                                      ];
-                                const data = series.slice(
-                                  Math.max(0, series.length - 12)
-                                );
-                                return <EconomicBarChart series={data} />;
-                              })()}
-                            <div className="absolute right-3 top-3 text-xs text-slate-400">
-                              Nguồn: {event.source || "Demo"}
+                        </TableCell>
+                        <TableCell className="text-slate-200 text-base py-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{event.title}</span>
+                            <ChevronDown
+                              className={`w-3 h-3 transition-transform text-slate-500 ${
+                                expandedIds.has(event.id)
+                                  ? "rotate-180"
+                                  : "rotate-0"
+                              }`}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-4">
+                          <span
+                            className={`text-base ${
+                              actualValue !== "--"
+                                ? "text-white font-medium"
+                                : "text-slate-500"
+                            }`}
+                          >
+                            {actualValue}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center py-4">
+                          <span className="text-base text-slate-400">
+                            {formatCellValue(event.forecast)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center py-4">
+                          <span className="text-base text-slate-400">
+                            {formatCellValue(event.previous)}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow className="border-b border-blue-400/10">
+                        <TableCell colSpan={6} className="p-0">
+                          <div
+                            className={`overflow-hidden transition-all duration-300 ease-out ${
+                              expandedIds.has(event.id)
+                                ? "max-h-[28rem] opacity-100"
+                                : "max-h-0 opacity-0"
+                            }`}
+                          >
+                            <div
+                              className={`p-4 bg-slate-700/30 transform transition-transform duration-300 ${
+                                expandedIds.has(event.id)
+                                  ? "translate-y-0"
+                                  : "-translate-y-2"
+                              }`}
+                            >
+                              <div className="text-slate-300 text-sm space-y-1 mb-3">
+                                <div>
+                                  <span className="text-slate-400">
+                                    Muc do quan trong:
+                                  </span>{" "}
+                                  <span className="text-slate-200 font-medium">
+                                    {importanceText[event.importance]}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400">Thời gian:</span>{" "}
+                                  <span className="text-slate-200">
+                                    {event.displayTime}
+                                  </span>
+                                </div>
+                                {event.currency ? (
+                                  <div>
+                                    <span className="text-slate-400">
+                                      Đơn vị tiền tệ:
+                                    </span>{" "}
+                                    <span className="text-slate-200">
+                                      {event.currency}
+                                    </span>
+                                  </div>
+                                ) : null}
+                              </div>
+                              <div className="relative bg-slate-800/40 border border-blue-400/20 rounded-md p-3 h-64">
+                                {expandedIds.has(event.id) ? (
+                                  <EconomicBarChart series={fallbackSeries} />
+                                ) : null}
+                                <div className="absolute right-3 top-3 text-xs text-slate-400">
+                                  Nguồn: {" "}
+                                  {event.sourceUrl ? (
+                                    <a
+                                      href={event.sourceUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-cyan-300 hover:underline"
+                                    >
+                                      Mở trang
+                                    </a>
+                                  ) : (
+                                    "Đang cập nhật"
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                </React.Fragment>
-              ))}
+                        </TableCell>
+                      </TableRow>
+                    </React.Fragment>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </div>
 
-        {/* Footer */}
         <div className="mt-4 text-sm text-slate-500 text-center">
-          Tất cả thời gian theo UTC-7 • {filteredEvents.length} sự kiện • Cung
-          cấp bởi Economic Calendar API
+          Tất cả thời gian theo UTC-7. {totalEvents} sự kiện trong khoảng thời
+          gian dang xem.
         </div>
       </CardContent>
     </Card>

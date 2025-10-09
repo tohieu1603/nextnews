@@ -14,11 +14,64 @@ import { CompanyDetails } from "../types";
 import { useSymbolStore } from "@/store/symbol.store";
 
 interface Stock {
-  name: string;
+  symbol: string;
+  name?: string;
   currentPrice: string;
   change: string;
   changePercent: string;
-  data: any;
+  code?: string;
+  sector?: string;
+  marketCap?: string;
+  volume?: string;
+  pe?: string;
+  pb?: string;
+  roe?: string;
+  dividendYield?: string;
+  detailedInfo: {
+    shareholderStructure: unknown;
+    subsidiaries: unknown;
+    esgInfo: {
+      overallRating: string;
+      environmentalScore: string | number;
+      socialScore: string | number;
+      governanceScore: string | number;
+    };
+    riskAssessment: {
+      creditRisk: {
+        level: string;
+        nplRatio: string;
+      };
+      marketRisk: {
+        level: string;
+        var: string;
+      };
+    };
+    [key: string]: unknown;
+  };
+  additionalMetrics: {
+    week52Low: string;
+    week52High: string;
+  };
+  [key: string]: unknown;
+}
+
+interface SymbolListItem {
+  id: number;
+  name: string;
+  company?: {
+    company_name?: string;
+  };
+  [key: string]: unknown;
+}
+
+interface QuarterData {
+  year: number;
+  quarter: number;
+  p_e?: number | string;
+  roe_percent?: number | string;
+  current_ratio?: number | string;
+  eps_vnd?: number | string;
+  [key: string]: unknown;
 }
 
 export default function DetailedAnalysisPage() {
@@ -29,11 +82,11 @@ export default function DetailedAnalysisPage() {
 
   const { symbolMap, setSymbolMap } = useSymbolStore();
   const [data, setData] = useState<CompanyDetails | null>(null);
-  const [stock, setStock] = useState<any>(null);
+  const [stock, setStock] = useState<Stock | null>(null);
   const isPositive = stock?.change?.trim().startsWith("+") ?? false;
-  const [latestRatios, setLatestRatios] = useState<any>(null);
+  const [latestRatios, setLatestRatios] = useState<QuarterData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [symbolList, setSymbolList] = useState<any[]>([]);
+  const [symbolList, setSymbolList] = useState<SymbolListItem[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -44,9 +97,11 @@ export default function DetailedAnalysisPage() {
         const list = await getSymbolData("");
         console.log("📋 Symbol list received:", list);
         setSymbolMap(list);
-        setSymbolList(list);
+        setSymbolList(list as SymbolListItem[]);
       } else {
-        setSymbolList(Object.values(symbolMap));
+        // Re-fetch the full list since symbolMap only contains name->id mapping
+        const list = await getSymbolData("");
+        setSymbolList(list as SymbolListItem[]);
       }
     };
     load();
@@ -71,11 +126,49 @@ export default function DetailedAnalysisPage() {
 
         // Set stock analysis based on symbol name
         console.log("Selected Data:", details?.symbolData);
-        console.log("Symbol name:", details?.symbolData?.name);
-        if (details?.symbolData?.name) {
-          const stockAnalysis = getStockAnalysis(details.symbolData.name);
+        const symbolData = details?.symbolData as { name?: string; id?: number; exchange?: string } | undefined;
+        console.log("Symbol name:", symbolData?.name);
+        if (symbolData?.name) {
+          const stockAnalysis = getStockAnalysis(symbolData.name);
           console.log("Stock Analysis:", stockAnalysis);
-          setStock(stockAnalysis);
+
+          const defaultDetailedInfo = {
+            shareholderStructure: null,
+            subsidiaries: null,
+            esgInfo: {
+              overallRating: 'N/A',
+              environmentalScore: 0,
+              socialScore: 0,
+              governanceScore: 0,
+            },
+            riskAssessment: {
+              creditRisk: {
+                level: 'N/A',
+                nplRatio: '0',
+              },
+              marketRisk: {
+                level: 'N/A',
+                var: '0',
+              },
+            },
+          };
+
+          const defaultAdditionalMetrics = {
+            week52Low: '0',
+            week52High: '0',
+          };
+
+          // Add symbol property to match Stock interface
+          setStock({
+            ...stockAnalysis,
+            symbol: symbolData.name,
+            detailedInfo: (details?.detailedInfo && Object.keys(details.detailedInfo).length > 0)
+              ? { ...defaultDetailedInfo, ...details.detailedInfo }
+              : defaultDetailedInfo,
+            additionalMetrics: (details?.additionalMetrics && Object.keys(details.additionalMetrics).length > 0)
+              ? { ...defaultAdditionalMetrics, ...details.additionalMetrics }
+              : defaultAdditionalMetrics,
+          });
         } else {
           console.log("⚠️ No symbol name found in details.symbolData");
         }
@@ -98,7 +191,7 @@ export default function DetailedAnalysisPage() {
   }, [id]);
 
   const filteredSuggestions = symbolList
-    .filter((symbol: any) =>
+    .filter((symbol: SymbolListItem) =>
       symbol.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       symbol.company?.company_name?.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -110,14 +203,15 @@ export default function DetailedAnalysisPage() {
     window.location.href = `/viewdetails/${stockId}`;
   };
 
-  function getLatestQuarter(data: any) {
+  function getLatestQuarter(data: unknown): QuarterData | null {
     if (!data || !Array.isArray(data) || data.length === 0) {
       console.log("⚠️ getLatestQuarter: data không hợp lệ", data);
       return null;
     }
 
-    const maxYear = Math.max(...data.map((d) => d.year));
-    const sameYear = data.filter((d) => d.year === maxYear);
+    const typedData = data as QuarterData[];
+    const maxYear = Math.max(...typedData.map((d) => d.year));
+    const sameYear = typedData.filter((d) => d.year === maxYear);
     const latest = sameYear.reduce((prev, curr) =>
       curr.quarter > prev.quarter ? curr : prev
     );
@@ -204,7 +298,7 @@ export default function DetailedAnalysisPage() {
                 searchQuery &&
                 filteredSuggestions.length > 0 && (
                   <div className="absolute top-full left-0 right-0 bg-slate-800/95 border border-blue-400/30 rounded-lg shadow-xl z-10 mt-1 overflow-hidden">
-                    {filteredSuggestions.map((stockItem: any) => {
+                    {filteredSuggestions.map((stockItem: SymbolListItem) => {
                       return (
                         <button
                           key={stockItem.id}
@@ -231,7 +325,7 @@ export default function DetailedAnalysisPage() {
             </div>
             <TabsDetail
               stock={stock}
-              data={detailedInfo}
+              data={detailedInfo || {}}
               isPositive={isPositive}
             />
           </div>

@@ -8,10 +8,66 @@ import { Calendar } from "lucide-react";
 import style from "styled-jsx/style";
 import PurchaseSymbolCard from "../PurchaseSymbolCard";
 
+interface StockData {
+  symbol: string;
+  currentPrice: string;
+  change: string;
+  changePercent: string;
+}
+
+interface Industry {
+  name: string;
+  updated_at: string;
+}
+
+interface Event {
+  event_title: string;
+  public_date: string;
+  issue_date: string;
+  source_url: string;
+}
+
+interface News {
+  type: 'meeting' | 'financial' | 'personnel' | 'stock' | 'business';
+  priority: 'high' | 'medium' | 'low';
+  category: string;
+  title: string;
+  public_date: number;
+  price_change_pct: number;
+  news_source_link: string;
+}
+
+interface Company {
+  company_name?: string;
+  company_profile?: string;
+  industry?: string;
+  history?: string;
+  website?: string;
+  no_employees?: string | number;
+  financial_ratio_issue_share?: string | number;
+  charter_capital?: string | number;
+  events?: Event[];
+  news?: News[];
+}
+
+interface SymbolData {
+  id: number;
+  name: string;
+  exchange?: string;
+  company?: Company;
+  industries?: Industry[];
+}
+
+interface OverviewData {
+  symbolData?: SymbolData;
+  company?: {
+    news?: News[];
+  };
+}
 
 interface OverviewTabProps {
-  stock: any;
-  data: any;
+  stock: StockData;
+  data: OverviewData;
   isPositive: boolean;
 }
 
@@ -190,14 +246,14 @@ export default function OverviewTab({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
             {Array.isArray(data?.symbolData?.industries) &&
               data.symbolData.industries.map(
-                (industries: any, index: number) => (
+                (industry: Industry, index: number) => (
                   <div key={index} className="p-4 bg-slate-700/30 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-semibold text-white">
-                        {industries.name}
+                        {industry.name}
                       </h4>
                       <Badge className="bg-emerald-500/20 text-emerald-400 text-xs">
-                        {formatDateTimee(industries.updated_at)}
+                        {formatDateTimee(industry.updated_at)}
                       </Badge>
                     </div>
                   </div>
@@ -217,7 +273,7 @@ export default function OverviewTab({
           <div className="grid grid-cols-2 gap-4">
             {data?.symbolData?.company?.events?.length ? (
               data.symbolData?.company.events.map(
-                (events: any, index: number) => (
+                (event: Event, index: number) => (
                   <div
                     key={index}
                     className="p-5 bg-slate-700/30 backdrop-blur-sm rounded-xl border border-indigo-400/20"
@@ -225,7 +281,7 @@ export default function OverviewTab({
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h5 className="font-bold text-white mb-1">
-                          {events.event_title}
+                          {event.event_title}
                         </h5>
                       </div>
                     </div>
@@ -234,7 +290,7 @@ export default function OverviewTab({
                         <Clock className="w-4 h-4 text-blue-400" />
                         <span>
                           Công bố: <span className="font-medium text-white">
-                            {formatDatee(events?.public_date)}
+                            {formatDatee(event?.public_date)}
                           </span>
                         </span>
                       </div>
@@ -243,7 +299,7 @@ export default function OverviewTab({
                         <Calendar className="w-4 h-4 text-green-400" />
                         <span>
                           Hiệu lực: <span className="font-medium text-white">
-                            {formatDatee(events?.issue_date)}
+                            {formatDatee(event?.issue_date)}
                           </span>
                         </span>
                       </div>
@@ -254,7 +310,7 @@ export default function OverviewTab({
                         size="sm"
                         className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-400/30 text-xs"
                         onClick={() =>
-                          window.open(events?.source_url, "_blank")
+                          window.open(event?.source_url, "_blank")
                         }
                       >
                         <Globe className="w-3 h-3 mr-1" />
@@ -353,16 +409,16 @@ export default function OverviewTab({
               return (
                 <div className="grid grid-cols-2 gap-5">
                   {data?.symbolData?.company?.news?.length ? (
-                    data.symbolData?.company.news.map((news: any, index: number) => {
-                      const style = newsTypeStyles[news.type as keyof typeof newsTypeStyles];
-                      const priority = priorityIndicators[news.priority as keyof typeof priorityIndicators];
+                    data.symbolData?.company.news.map((newsItem: News, index: number) => {
+                      const style = newsTypeStyles[newsItem.type as keyof typeof newsTypeStyles];
+                      const priority = priorityIndicators[newsItem.priority as keyof typeof priorityIndicators];
                       const IconComponent = style?.icon;
 
                       return (
                         <div
                           key={index}
                           className={`relative p-6 bg-gradient-to-br ${style?.gradient} backdrop-blur-sm rounded-2xl border ${style?.border} transition-all duration-500 group cursor-pointer overflow-hidden hover:scale-[1.02] hover:shadow-2xl ${style?.glow}`}
-                          onClick={() => window.open(news.news_source_link, "_blank")}
+                          onClick={() => window.open(newsItem.news_source_link, "_blank")}
                         >
                           {/* Priority indicator */}
                           <div className={`absolute top-3 right-3 w-2 h-2 ${priority?.color} rounded-full ${priority?.pulse}`}></div>
@@ -380,28 +436,28 @@ export default function OverviewTab({
                                   {/* <IconComponent className="w-4 h-4 text-white" /> */}
                                 </div>
                                 <Badge className={`${style?.badge} px-2 py-1 text-xs font-medium backdrop-blur-sm`}>
-                                  {news.category}
+                                  {newsItem.category}
                                 </Badge>
                               </div>
                             </div>
                             <h5 className="font-bold text-white mb-3 leading-tight group-hover:text-blue-100 transition-colors duration-300 text-sm">
-                              {news.title}
+                              {newsItem.title}
                             </h5>
                             <div className="space-y-3 text-xs">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-slate-300">
                                   <div className="w-1 h-1 bg-blue-400 rounded-full"></div>
                                   <Clock className="w-3 h-3" />
-                                  <span className="font-medium">Công bố: {formatDate(news.public_date)}</span>
+                                  <span className="font-medium">Công bố: {formatDate(newsItem.public_date)}</span>
                                 </div>
                               </div>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-slate-300">
                                   {/* Chấm màu trạng thái */}
                                   <div
-                                    className={`w-1 h-1 rounded-full ${news.price_change_pct > 0
+                                    className={`w-1 h-1 rounded-full ${newsItem.price_change_pct > 0
                                       ? "bg-green-400"
-                                      : news.price_change_pct < 0
+                                      : newsItem.price_change_pct < 0
                                         ? "bg-red-400"
                                         : "bg-gray-400"
                                       }`}
@@ -411,17 +467,17 @@ export default function OverviewTab({
 
                                   {/* Giá trị phần trăm */}
                                   <span
-                                    className={`flex items-center gap-1 ${news.price_change_pct > 0
+                                    className={`flex items-center gap-1 ${newsItem.price_change_pct > 0
                                       ? "text-green-400"
-                                      : news.price_change_pct < 0
+                                      : newsItem.price_change_pct < 0
                                         ? "text-red-400"
                                         : "text-gray-400"
                                       } font-medium`}
                                   >
-                                    {news.price_change_pct > 0 && <ArrowUpRight className="w-3 h-3" />}
-                                    {news.price_change_pct < 0 && <ArrowDownRight className="w-3 h-3" />}
-                                    {news.price_change_pct === 0 && <Minus className="w-3 h-3" />}
-                                    {formatPct(news.price_change_pct)}
+                                    {newsItem.price_change_pct > 0 && <ArrowUpRight className="w-3 h-3" />}
+                                    {newsItem.price_change_pct < 0 && <ArrowDownRight className="w-3 h-3" />}
+                                    {newsItem.price_change_pct === 0 && <Minus className="w-3 h-3" />}
+                                    {formatPct(newsItem.price_change_pct)}
                                   </span>
                                 </div>
                               </div>

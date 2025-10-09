@@ -509,16 +509,16 @@ export function NewsDetailPage({
                   <CardTitle className="text-base">Phân tích nhanh</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {data?.map((item: any) => (
+                  {data?.map((item) => (
                     <div
-                      key={item.id}
+                      key={item.symbol}
                       className="flex justify-between items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
-                      onClick={() => onViewDetails(item)}
+                      onClick={() => onViewDetails(item.symbol)}
                     >
                       <span className="text-sm font-medium">{item.name}</span>
                       <div className="flex items-center gap-1">
                         <TrendingUp className="w-3 h-3 text-green-600" />
-                        <span className="text-xs text-green-600">1234567</span>
+                        <span className="text-xs text-green-600">{item.price}</span>
                       </div>
                     </div>
                   ))}
@@ -616,20 +616,19 @@ export function NewsDetailPage({
   );
 }
 
-async function apiGetSymbolByNameData(slug: any): Promise<SymbolByNameData[]> {
+async function apiGetSymbolByNameData(slug: string): Promise<SymbolByNameData[]> {
   // Replace this mock with your actual API call logic
+  console.log('Fetching data for:', slug);
   return [
     {
       symbol: "YTC",
       name: "YTC Corp",
       price: 100.5,
-      // Add other fields as required
     },
     {
       symbol: "TCB",
       name: "Techcombank",
       price: 45.2,
-      // Add other fields as required
     },
   ];
 }
