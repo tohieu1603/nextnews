@@ -96,7 +96,7 @@ export interface SymbolOrderItem {
   price: number;
   license_days: number;
   symbol_name?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   auto_renew?: boolean;
   auto_renew_price?: number | null;
   auto_renew_cycle_days?: number | null;

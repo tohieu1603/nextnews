@@ -24,6 +24,22 @@ import { useSymbolStore } from "@/store/symbol.store";
 import { getStockAnalysis } from "@/components/helpers/detailedAnalysisHelpers";
 import dayjs from "dayjs";
 
+type SymbolByNameData = {
+  name: string;
+  id: string;
+  exchange: string;
+  updated_at: string;
+};
+
+interface CompanyDetailedInfo {
+  company?: {
+    company_name?: string;
+    industry?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 const getTrendIcon = (trend: string) => {
   return trend === "up" ? (
     <TrendingUp className="w-4 h-4" />
@@ -69,15 +85,8 @@ export function QuickAnalysis() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<SymbolByNameData[] | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [detailedInfo, setDetailedInfo] = useState<any>(null);
+  const [detailedInfo, setDetailedInfo] = useState<CompanyDetailedInfo | null>(null);
   const [loadingDetails, setLoadingDetails] = useState<boolean>(false);
-
-  type SymbolByNameData = {
-    name: string;
-    id: string;
-    exchange: string;
-    updated_at: string;
-  };
   useEffect(() => {
     const fetchSymbols = async () => {
       try {

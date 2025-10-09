@@ -246,13 +246,13 @@ export default function PurchasedLicensesTab({
                       <div className="flex items-center gap-2.5 flex-1 min-w-0">
                         <div className={cn(
                           "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                          license.subscription.is_active || license.subscription.status === "active"
+                          license.subscription?.is_active || license.subscription?.status === "active"
                             ? "bg-emerald-500/20"
                             : "bg-slate-600/30"
                         )}>
                           <RotateCw className={cn(
                             "w-4 h-4",
-                            license.subscription.is_active || license.subscription.status === "active"
+                            license.subscription?.is_active || license.subscription?.status === "active"
                               ? "text-emerald-400"
                               : "text-slate-400"
                           )} />
@@ -267,14 +267,14 @@ export default function PurchasedLicensesTab({
                         </div>
                       </div>
                       <Switch
-                        checked={license.subscription.is_active || license.subscription.status === "active"}
+                        checked={license.subscription?.is_active || license.subscription?.status === "active"}
                         onCheckedChange={(checked) =>
-                          onToggleAutoRenew(license.license_id, license.subscription.is_active || license.subscription.status === "active")
+                          onToggleAutoRenew(license.license_id, license.subscription?.is_active || license.subscription?.status === "active")
                         }
                         className="data-[state=checked]:bg-emerald-500 flex-shrink-0 ml-2"
                       />
                     </div>
-                    {(license.subscription.is_active || license.subscription.status === "active") && (
+                    {(license.subscription?.is_active || license.subscription?.status === "active") && (
                       <div className="mt-2 p-2.5 bg-emerald-500/10 rounded-lg border border-emerald-400/20">
                         <p className="text-xs text-emerald-300 flex items-center gap-1.5">
                           <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />

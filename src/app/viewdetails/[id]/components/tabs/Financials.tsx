@@ -17,10 +17,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-interface FinancialsTabProps {
-  data: any;
-}
-
 interface QuarterData {
   year: number;
   quarter: number;
@@ -33,6 +29,57 @@ interface QuarterData {
   business_income_tax_current: number;
   business_income_tax_deferred: number;
   minority_interest: number;
+  net_other_income_expenses?: number;
+  general_admin_expenses?: number;
+  [key: string]: unknown;
+}
+
+interface BalanceData {
+  year: number;
+  quarter: number;
+  exchange?: string;
+  total_assets: number;
+  current_assets: number;
+  long_term_assets: number;
+  liabilities: number;
+  owners_equity: number;
+  total_resources: number;
+  cash_and_cash_equivalents?: number;
+  short_term_investments?: number;
+  accounts_receivable?: number;
+  net_inventories?: number;
+  prepayments_to_suppliers?: number;
+  fixed_assets?: number;
+  long_term_investments?: number;
+  long_term_prepayments?: number;
+  other_long_term_receivables?: number;
+  long_term_trade_receivables?: number;
+  current_liabilities?: number;
+  short_term_borrowings?: number;
+  advances_from_customers?: number;
+  long_term_liabilities?: number;
+  long_term_borrowings?: number;
+  paid_in_capital?: number;
+  undistributed_earnings?: number;
+  investment_and_development_funds?: number;
+  common_shares?: number;
+  [key: string]: unknown;
+}
+
+interface StockInfo {
+  code?: string;
+  [key: string]: unknown;
+}
+
+interface FinancialsData {
+  stock?: StockInfo;
+  balanceData?: BalanceData[];
+  incomeData?: QuarterData[];
+  [key: string]: unknown;
+}
+
+interface FinancialsTabProps {
+  data: FinancialsData;
 }
 
 export default function FinancialsTab({ data }: FinancialsTabProps) {
@@ -47,7 +94,7 @@ export default function FinancialsTab({ data }: FinancialsTabProps) {
   const stock = data?.stock || { code: "N/A" };
 
   const balanceEntries = useMemo(() => {
-    if (!Array.isArray(data?.balanceData)) return [] as Array<Record<string, unknown>>;
+    if (!Array.isArray(data?.balanceData)) return [] as BalanceData[];
 
     return [...data.balanceData].sort((a, b) => {
       if (a.year !== b.year) return b.year - a.year;
@@ -55,12 +102,14 @@ export default function FinancialsTab({ data }: FinancialsTabProps) {
     });
   }, [data?.balanceData]);
 
-  const [selectedYear, setSelectedYear] = useState<number | null>(() =>
-    balanceEntries[0]?.year ?? null
-  );
-  const [selectedQuarter, setSelectedQuarter] = useState<number | null>(() =>
-    balanceEntries[0]?.quarter ?? null
-  );
+  const [selectedYear, setSelectedYear] = useState<number | null>(() => {
+    const firstEntry = balanceEntries[0];
+    return firstEntry?.year ?? null;
+  });
+  const [selectedQuarter, setSelectedQuarter] = useState<number | null>(() => {
+    const firstEntry = balanceEntries[0];
+    return firstEntry?.quarter ?? null;
+  });
 
   useEffect(() => {
     const latestEntry = balanceEntries[0];
@@ -207,7 +256,7 @@ export default function FinancialsTab({ data }: FinancialsTabProps) {
               </Badge>
               <Badge className="bg-gradient-to-r from-blue-500/20 to-cyan-500/10 text-cyan-400 px-4 py-2 border border-cyan-400/30">
                 <Star className="w-3 h-3 mr-2" />
-                {currentBalance?.symbol?.exchange ?? stock.code ?? "HSX"}
+                {currentBalance?.exchange ?? stock.code ?? "HSX"}
               </Badge>
             </div>
           </div>
@@ -530,7 +579,7 @@ return (
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-slate-300">Lợi nhuận sau thuế chưa phân phối</span>
-                          <span className={`text-sm font-medium ${data.undistributed_earnings < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                          <span className={`text-sm font-medium ${(data.undistributed_earnings ?? 0) < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                             {formatVND(data.undistributed_earnings)}
                           </span>
                         </div>
@@ -766,15 +815,13 @@ return (
                                         Thu nhập khác (ròng):
                                       </span>
                                       <span
-                                        className={`font-semibold ${(quarter as any)
-                                          .net_other_income_expenses >= 0
+                                        className={`font-semibold ${(quarter.net_other_income_expenses ?? 0) >= 0
                                           ? "text-emerald-400"
                                           : "text-red-400"
                                           }`}
                                       >
                                         {formatCurrency(
-                                          (quarter as any)
-                                            .net_other_income_expenses
+                                          quarter.net_other_income_expenses
                                         )}
                                       </span>
                                     </div>
@@ -905,8 +952,7 @@ return (
                                       </span>
                                       <span className="text-red-400 font-semibold">
                                         {formatCurrency(
-                                          (quarter as any)
-                                            .general_admin_expenses
+                                          quarter.general_admin_expenses
                                         )}
                                       </span>
                                     </div>

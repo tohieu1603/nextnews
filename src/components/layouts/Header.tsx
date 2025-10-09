@@ -26,7 +26,7 @@ import { useRouter } from "next/navigation";
 import { searchStockSuggestions, StockSuggestion } from "@/constants/stockSuggestions";
 
 type UserProfile = {
-  
+
   email?: string;
   name?: string;
   first_name?: string;
@@ -36,7 +36,7 @@ type UserProfile = {
   [key: string]: unknown;
 };
 interface HeaderProps {
-  data: any;
+  data?: unknown;
 }
 
 const PROFILE_ENDPOINT = "http://192.168.31.248:8000/api/auth/profile";
@@ -134,7 +134,7 @@ export function Header() {
   const [lastScrollY, setLastScrollY] = useState(0);
   // const [user, setUser] = useState<UserProfile | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -150,105 +150,7 @@ export function Header() {
     }
   }, [isLoggedIn, user, wallet, fetchWallet]);
 
-  // const userDisplayName = resolveDisplayName(user);
-  // const showAuthLinks = !userDisplayName && !isCheckingAuth;
 
-  // useEffect(() => {
-  //   let isMounted = true;
-  //   const controller = new AbortController();
-
-  //   const fetchProfile = async () => {
-  //     setIsCheckingAuth(true);
-  //     const cachedUser = safeParseUser(localStorage.getItem("user"));
-  //     const token =
-  //       localStorage.getItem("token") ??
-  //       localStorage.getItem("access_token") ??
-  //       localStorage.getItem("accessToken");
-
-  //     if (!token) {
-  //       localStorage.removeItem("user");
-  //       if (isMounted) {
-  //         // setUser(null);
-  //         setIsCheckingAuth(false);
-  //       }
-  //       return;
-  //     }
-
-  //     try {
-  //       const response = await fetch(PROFILE_ENDPOINT, {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //         credentials: "include",
-  //         signal: controller.signal,
-  //       });
-
-  //       if (response.status === 401) {
-  //         localStorage.removeItem("user");
-  //         localStorage.removeItem("token");
-  //         localStorage.removeItem("access_token");
-  //         localStorage.removeItem("accessToken");
-  //         localStorage.removeItem("refresh_token");
-  //         if (isMounted) {
-  //           // setUser(null);
-  //         }
-  //         return;
-  //       }
-
-  //       if (!response.ok) {
-  //         throw new Error(`Request failed with status ${response.status}`);
-  //       }
-
-  //       const payload = (await response.json()) as unknown;
-  //       const profileRecord = extractProfileRecord(payload);
-
-  //       if (!profileRecord) {
-  //         throw new Error("Invalid profile payload");
-  //       }
-
-  //       const normalized: UserProfile = {
-  //         ...(cachedUser ?? {}),
-  //         ...profileRecord,
-  //       };
-
-  //       if (!normalized.email && cachedUser?.email) {
-  //         normalized.email = cachedUser.email;
-  //       }
-
-  //       const displayName =
-  //         resolveDisplayName(normalized) || resolveDisplayName(cachedUser);
-  //       if (displayName) {
-  //         normalized.displayName = displayName;
-  //       }
-
-  //       if (isMounted) {
-  //         // setUser(normalized);
-  //         localStorage.setItem("user", JSON.stringify(normalized));
-  //       }
-  //     } catch (error) {
-  //       if (error instanceof DOMException && error.name === "AbortError") {
-  //         return;
-  //       }
-  //       console.error("Failed to load profile:", error);
-  //       if (isMounted) {
-  //         // setUser(cachedUser ?? null);
-  //       }
-  //     } finally {
-  //       if (isMounted) {
-  //         setIsCheckingAuth(false);
-  //       }
-  //     }
-  //   };
-
-  //   fetchProfile();
-
-  //   return () => {
-  //     isMounted = false;
-  //     controller.abort();
-  //   };
-  // }, []);
-
-  // Handle scroll to show/hide header
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -334,11 +236,15 @@ export function Header() {
     "⚡ HPG công bố kết quả kinh doanh vượt kỳ vọng",
     "🏆 TCB đạt ROE cao nhất ngành ngân hàng",
   ];
-
+  // Handle logout
   const handleLogout = () => {
+    localStorage.removeItem("token")
+    // localStorage.clear();
     logout();
     setIsProfileMenuOpen(false);
+    router.push("/");
   };
+
 
   // Handle search input change
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -382,31 +288,31 @@ export function Header() {
     }, 200);
   };
 
- 
+
 
   const [dateStr, setDateStr] = useState("");
 
-useEffect(() => {
-  const now = new Date();
+  useEffect(() => {
+    const now = new Date();
 
-  // Map thứ
-  const weekdays = [
-    "Chủ nhật",
-    "Thứ 2",
-    "Thứ 3",
-    "Thứ 4",
-    "Thứ 5",
-    "Thứ 6",
-    "Thứ 7",
-  ];
+    // Map thứ
+    const weekdays = [
+      "Chủ nhật",
+      "Thứ 2",
+      "Thứ 3",
+      "Thứ 4",
+      "Thứ 5",
+      "Thứ 6",
+      "Thứ 7",
+    ];
 
-  const dayName = weekdays[now.getDay()];
-  const day = String(now.getDate()).padStart(2, "0");
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const year = now.getFullYear();
+    const dayName = weekdays[now.getDay()];
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = now.getFullYear();
 
-  setDateStr(`${dayName}, ${day}/${month}/${year}`);
-}, []);
+    setDateStr(`${dayName}, ${day}/${month}/${year}`);
+  }, []);
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -432,12 +338,12 @@ useEffect(() => {
 
 
 
+
   return (
-    
+
     <header
-      className={`bg-gray-900/95 border-b border-gray-600/30 fixed top-0 left-0 right-0 z-[100] shadow-xl backdrop-blur-md transition-transform duration-300 ease-in-out ${
-        isHeaderVisible ? "translate-y-0" : "-translate-y-full"
-      }`}
+      className={`bg-gray-900/95 border-b border-gray-600/30 fixed top-0 left-0 right-0 z-[100] shadow-xl backdrop-blur-md transition-transform duration-300 ease-in-out ${isHeaderVisible ? "translate-y-0" : "-translate-y-full"
+        }`}
     >
       {/* Breaking News Ticker - Enhanced */}
       <div className="bg-blue-600 text-white py-2 relative overflow-hidden">
@@ -505,21 +411,7 @@ useEffect(() => {
                 <span className="text-gray-300">{dateStr}</span>
               </div>
               <div className="text-gray-600">|</div>
-              <div className="flex items-center space-x-2 px-3 py-2 bg-emerald-500/10 rounded-lg border border-emerald-400/30">
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
-                <div>
-                  <span className="text-emerald-300 font-medium">
-                    VN-Index: 1,278.45
-                  </span>
-                  <span className="text-emerald-400 ml-2">(+0.97%)</span>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2 px-3 py-2 bg-blue-500/10 rounded-lg border border-blue-400/30">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                <span className="text-blue-300">Phiên ATC</span>
-              </div>
             </div>
-
             {/* Action buttons - Enhanced */}
             <div className="flex items-center space-x-2">
               {user && isLoggedIn && (
@@ -547,11 +439,12 @@ useEffect(() => {
               <div className="relative">
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="hover:bg-gray-700/50 text-gray-300 hover:text-white"
+                  className="max-w-[180px] px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-md truncate"
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                 >
-                  <User className="w-4 h-4" />
+                  {isLoggedIn && user
+                    ? user.email || user.fullName
+                    : "Đăng nhập"}
                 </Button>
 
                 {/* Profile Dropdown - Enhanced */}
@@ -613,12 +506,6 @@ useEffect(() => {
                         >
                           Đăng nhập
                         </Link>
-                        <a
-                          href="#"
-                          className="block px-4 py-2 text-sm text-slate-300 hover:bg-blue-500/20 hover:text-white transition-colors"
-                        >
-                          Đăng ký
-                        </a>
                       </>
                     )}
                   </div>
@@ -663,11 +550,10 @@ useEffect(() => {
                     <button
                       key={filter.label}
                       onClick={() => setActiveSearchFilter(filter.label)}
-                      className={`flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium transition-all rounded-lg lg:rounded-xl whitespace-nowrap ${
-                        activeSearchFilter === filter.label
-                          ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm"
-                          : "text-slate-300 hover:text-white hover:bg-blue-500/20"
-                      }`}
+                      className={`flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium transition-all rounded-lg lg:rounded-xl whitespace-nowrap ${activeSearchFilter === filter.label
+                        ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm"
+                        : "text-slate-300 hover:text-white hover:bg-blue-500/20"
+                        }`}
                     >
                       <span className="w-3 h-3 lg:w-4 lg:h-4">{filter.icon}</span>
                       <span className="hidden sm:inline lg:inline">{filter.label}</span>
@@ -755,83 +641,6 @@ useEffect(() => {
                 </div>
               </div>
             )}
-
-            {/* Search Suggestions - Enhanced */}
-            {/* {searchQuery && !showSuggestions && (
-              <div className="mt-2 bg-gradient-to-br from-slate-800/90 to-slate-700/90 rounded-lg shadow-xl border border-blue-400/30 py-2 max-w-4xl mx-auto backdrop-blur-sm">
-                <div className="px-4 py-2 text-xs text-slate-400 border-b border-blue-400/20">
-                  Gợi ý tìm kiếm trong &quot;{activeSearchFilter}&quot;
-                </div>
-                <div className="space-y-1">
-                  {activeSearchFilter === "Tổng quan" && (
-                    <>
-                      <div className="px-4 py-2 hover:bg-blue-500/20 cursor-pointer flex items-center gap-3 transition-colors">
-                        <BarChart3 className="w-4 h-4 text-blue-400" />
-                        <span className="text-sm text-slate-300">
-                          VSC - Vietcombank
-                        </span>
-                        <span className="text-xs text-slate-500 ml-auto">
-                          Cổ phiếu
-                        </span>
-                      </div>
-                      <div className="px-4 py-2 hover:bg-blue-500/20 cursor-pointer flex items-center gap-3 transition-colors">
-                        <BarChart3 className="w-4 h-4 text-emerald-400" />
-                        <span className="text-sm text-slate-300">
-                          HPG - Hoa Phat Group
-                        </span>
-                        <span className="text-xs text-slate-500 ml-auto">
-                          Cổ phiếu
-                        </span>
-                      </div>
-                    </>
-                  )}
-                  {activeSearchFilter === "Kỹ thuật" && (
-                    <>
-                      <div className="px-4 py-2 hover:bg-blue-500/20 cursor-pointer flex items-center gap-3 transition-colors">
-                        <TrendingUp className="w-4 h-4 text-blue-400" />
-                        <span className="text-sm text-slate-300">
-                          Phân tích kỹ thuật VN-Index
-                        </span>
-                        <span className="text-xs text-slate-500 ml-auto">
-                          Báo cáo
-                        </span>
-                      </div>
-                      <div className="px-4 py-2 hover:bg-blue-500/20 cursor-pointer flex items-center gap-3 transition-colors">
-                        <TrendingUp className="w-4 h-4 text-emerald-400" />
-                        <span className="text-sm text-slate-300">
-                          Đường MA và RSI
-                        </span>
-                        <span className="text-xs text-slate-500 ml-auto">
-                          Chỉ báo
-                        </span>
-                      </div>
-                    </>
-                  )}
-                  {activeSearchFilter === "Tin tức" && (
-                    <>
-                      <div className="px-4 py-2 hover:bg-blue-500/20 cursor-pointer flex items-center gap-3 transition-colors">
-                        <Newspaper className="w-4 h-4 text-cyan-400" />
-                        <span className="text-sm text-slate-300">
-                          Tin tức ngân hàng mới nhất
-                        </span>
-                        <span className="text-xs text-slate-500 ml-auto">
-                          Bài viết
-                        </span>
-                      </div>
-                      <div className="px-4 py-2 hover:bg-blue-500/20 cursor-pointer flex items-center gap-3 transition-colors">
-                        <Newspaper className="w-4 h-4 text-teal-400" />
-                        <span className="text-sm text-slate-300">
-                          Chính sách mới từ SBV
-                        </span>
-                        <span className="text-xs text-slate-500 ml-auto">
-                          Tin tức
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )} */}
           </div>
         </div>
 
@@ -846,11 +655,10 @@ useEffect(() => {
                   <button
                     key={filter.label}
                     onClick={() => setActiveSearchFilter(filter.label)}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium transition-all rounded-md ${
-                      activeSearchFilter === filter.label
-                        ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm"
-                        : "text-slate-300"
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium transition-all rounded-md ${activeSearchFilter === filter.label
+                      ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm"
+                      : "text-slate-300"
+                      }`}
                   >
                     {filter.icon}
                     <span>{filter.label}</span>
@@ -922,13 +730,6 @@ useEffect(() => {
 
             {/* Mobile Market Info - Enhanced */}
             <div className="mb-4 p-3 bg-gradient-to-r from-slate-700/50 to-slate-600/50 rounded-lg border border-blue-400/20">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  <span className="text-slate-300">VN-Index: 1,278.45</span>
-                </div>
-                <span className="text-emerald-400 font-medium">+0.97%</span>
-              </div>
             </div>
 
             {/* Mobile Menu Items - Enhanced */}
@@ -937,11 +738,10 @@ useEffect(() => {
                 <a
                   key={index}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    item.isActive
-                      ? "bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-cyan-300 font-medium border border-blue-400/30"
-                      : "text-slate-300 hover:bg-blue-500/20 hover:text-white"
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${item.isActive
+                    ? "bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-cyan-300 font-medium border border-blue-400/30"
+                    : "text-slate-300 hover:bg-blue-500/20 hover:text-white"
+                    }`}
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -953,16 +753,9 @@ useEffect(() => {
             <div className="mt-4 pt-4 border-t border-blue-400/20">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-slate-400">
-                  <Calendar className="w-4 h-4" />
-                  <span>Thứ 2, 25/08/2025</span>
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-300">{dateStr}</span>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="text-cyan-400 border-cyan-400/50 bg-cyan-400/10"
-                >
-                  <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse mr-1"></div>
-                  Phiên ATC
-                </Badge>
               </div>
             </div>
           </div>

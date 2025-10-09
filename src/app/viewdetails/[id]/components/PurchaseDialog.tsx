@@ -53,7 +53,13 @@ export default function PurchaseDialog({
   const [orderId, setOrderId] = useState<string | null>(null);
   const [intentId, setIntentId] = useState<string | null>(null);
   const [shortage, setShortage] = useState(0);
-  const [qrData, setQrData] = useState<any>(null);
+  const [qrData, setQrData] = useState<{
+    intent_id: string;
+    order_code: string;
+    amount: number;
+    qr_code_url: string;
+    expires_at: string;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -121,10 +127,11 @@ export default function PurchaseDialog({
         setStep("error");
         setError(result.message || "Đơn hàng đang chờ thanh toán");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Purchase error:", err);
       setStep("error");
-      setError(err.message || "Có lỗi xảy ra khi mua mã");
+      const message = err instanceof Error ? err.message : "Có lỗi xảy ra khi mua mã";
+      setError(message);
     }
   };
 
@@ -153,10 +160,11 @@ export default function PurchaseDialog({
       setIntentId(result.intent_id);
       setStep("payment_qr");
       startPollingIntentStatus(result.intent_id);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("SePay payment error:", err);
       setStep("error");
-      setError(err.message || "Có lỗi xảy ra khi tạo thanh toán. Vui lòng liên hệ admin.");
+      const message = err instanceof Error ? err.message : "Có lỗi xảy ra khi tạo thanh toán. Vui lòng liên hệ admin.";
+      setError(message);
     }
   };
 

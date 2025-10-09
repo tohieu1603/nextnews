@@ -1,15 +1,29 @@
-import axios from "axios";
-
+﻿import axios from "axios";
 const API_URL = `${process.env.NEXT_PUBLIC_API_ORIGIN}/api`;
 // const API_URL = "https://payment.operis.vn/api";
-
 console.log("API_URLLLLL", API_URL);
-
 const api = axios.create({
   baseURL: API_URL,
   timeout: 10000,
 });
 
+export interface EconomicCalendarApiEvent {
+  date: string;
+  time: string;
+  all_day: boolean;
+  country: string;
+  country_code: string;
+  currency: string;
+  importance: number;
+  title: string;
+  actual: string | null;
+  forecast: string | null;
+  previous: string | null;
+  source_url: string | null;
+  event_id: string;
+  event_datetime: string;
+  category: string;
+}
 // Lấy danh sách symbols
 export const getSymbolData = async (symbol: string) => {
   try {
@@ -17,13 +31,13 @@ export const getSymbolData = async (symbol: string) => {
     const response = await api.get(`/stocks/symbols?limit=8`);
 
     if (!response?.data || response.data.length === 0) {
-      return { message: "Đang cập nhật dữ liệu…" };
+      return { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
     }
 
     return response.data;
   } catch (error) {
     console.error("getSymbolData error:", error);
-    return { message: "Đang cập nhật dữ liệu…" };
+    return { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
   }
 };
 
@@ -33,13 +47,13 @@ export const getNameData = async (code: string) => {
     const response = await api.get(`/stocks/symbols/by-name/${code}`);
 
     if (!response?.data) {
-      return { message: "Đang cập nhật dữ liệu…" };
+      return { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
     }
 
     return response.data;
   } catch (error) {
     console.error("getNameData error:", error);
-    return { message: "Đang cập nhật dữ liệu…" };
+    return { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
   }
 };
 // export const getSymbolId = async (symbolId : string) => {
@@ -47,13 +61,13 @@ export const getNameData = async (code: string) => {
 //     const response = await api.get(`/stocks/symbols/${symbolId}`);
 
 //     if (!response?.data) {
-//       return { message: "Đang cập nhật dữ liệu…" };
+//       return { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
 //     }
 
 //     return response.data;
 //   } catch (error) {
 //     console.error("getSymbolId error:", error);
-//     return { message: "Đang cập nhật dữ liệu…" };
+//     return { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
 //   }
 // };
 // export const getSymbolByName = async (name: string) => {
@@ -64,8 +78,8 @@ export const getNameData = async (code: string) => {
 //     return { message: "Đang cập nhật dữ liệu…" };
 //   }
 // Lấy chi tiết công ty
-export const getCompanyDetails = async (symbolId: number) => {
-  console.log("📞 getCompanyDetails called with symbolId:", symbolId);
+export const getCompanyDetails = async (symbolId: number): Promise<Record<string, unknown>> => {
+  console.log("ðŸ“ž getCompanyDetails called with symbolId:", symbolId);
   const endpoints = [
     { key: "symbolData", url: `/stocks/symbols/${symbolId}` },
     { key: "balanceData", url: `/calculate/balances/${symbolId}` },
@@ -74,33 +88,33 @@ export const getCompanyDetails = async (symbolId: number) => {
     { key: "ratiosData", url: `/calculate/ratios/${symbolId}` },
   ];
 
-  console.log("🌐 API endpoints:", endpoints.map(e => e.url));
+  console.log("ðŸŒ API endpoints:", endpoints.map(e => e.url));
 
   const results = await Promise.allSettled(
     endpoints.map((ep) => api.get(ep.url))
   );
 
-  const data: Record<string, any> = {};
+  const data: Record<string, unknown> = {};
 
   results.forEach((res, i) => {
     if (res.status === "fulfilled" && res.value?.data) {
       data[endpoints[i].key] = res.value.data;
-      console.log(`✅ ${endpoints[i].key}:`, Array.isArray(res.value.data) ? `${res.value.data.length} items` : 'object');
+      console.log(`âœ… ${endpoints[i].key}:`, Array.isArray(res.value.data) ? `${res.value.data.length} items` : 'object');
     } else {
       const error = res.status === "rejected" ? res.reason : "Unknown error";
       // Only log if it's not a 404 (expected for missing data)
       if (error?.response?.status !== 404) {
-        console.warn(`⚠️ Failed to fetch ${endpoints[i].key}:`, {
+        console.warn(`âš ï¸ Failed to fetch ${endpoints[i].key}:`, {
           url: endpoints[i].url,
           status: error?.response?.status,
           message: error?.message,
         });
       }
-      data[endpoints[i].key] = { message: "Đang cập nhật dữ liệu…" };
+      data[endpoints[i].key] = { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
     }
   });
 
-  console.log("📦 Final data:", data);
+  console.log("ss¦ Final data:", data);
   return data;
 };
 
@@ -281,3 +295,33 @@ export const getAutoRenewAttempts = async (
     throw error;
   }
 };
+
+export const getEconomicCalendar = async (
+  date_from: string,
+  date_to: string
+) => {
+  try {
+    const response = await api.get<{
+      value?: EconomicCalendarApiEvent[];
+      Count?: number;
+    }>(`/calendar/`, {
+      params: { date_from, date_to },
+    });
+
+    const events = response?.data?.value;
+
+    if (!Array.isArray(events) || events.length === 0) {
+      return { message: "Không có dữ liệu lịch kinh tế." };
+    }
+
+    return {
+      events,
+      total: response.data?.Count ?? events.length,
+    };
+  } catch (error) {
+    console.error("getEconomicCalendar error:", error);
+    return { message: "Lỗi khi tải lịch kinh tế." };
+  }
+};
+
+

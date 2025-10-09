@@ -5,6 +5,18 @@ import { persist } from "zustand/middleware";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
+interface PaymentIntentStatus {
+  intent_id: string;
+  order_code: string;
+  amount: number;
+  status: "processing" | "succeeded" | "failed" | "expired" | "paid" | "cancelled";
+  is_expired: boolean;
+  qr_code_url?: string;
+  expires_at?: string;
+  message: string;
+  [key: string]: unknown;
+}
+
 interface AuthState {
   isLoggedIn: boolean;
   user: UserProfile | null;
@@ -30,7 +42,7 @@ interface AuthState {
   }) => Promise<SymbolOrderResponse | null>;
   paySymbolOrderWithSepay: (orderId: string) => Promise<SepayPaymentIntent | null>;
   paySymbolOrderWithTopup: (orderId: string) => Promise<SepayPaymentIntent | null>;
-  checkPaymentIntentStatus: (intentId: string) => Promise<any | null>;
+  checkPaymentIntentStatus: (intentId: string) => Promise<PaymentIntentStatus | null>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -331,7 +343,7 @@ export const useAuthStore = create<AuthState>()(
             return null;
           }
 
-          const { data } = await axios.get(
+          const { data } = await axios.get<PaymentIntentStatus>(
             `${API_BASE_URL}/api/sepay/intent/${intentId}`,
             {
               headers: { Authorization: `Bearer ${token}` },

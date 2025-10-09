@@ -1,8 +1,9 @@
 import { getSymbolData as apiGetSymbolData  } from "@/services/api";
 import { useEffect, useState, useCallback } from "react";
 
-// Simple placeholder type; replace with real API response shape when available
-type SymbolData = any;
+interface SymbolData {
+  [key: string]: unknown;
+}
 
 export const useApiData = (symbol: string = "AAPL") => {
   const [data, setData] = useState<SymbolData | null>(null);

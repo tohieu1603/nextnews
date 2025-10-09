@@ -1,9 +1,11 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DebouncedFn<T extends (...args: any[]) => void> = {
   (...args: Parameters<T>): void;
   cancel: () => void;
   flush: () => void;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function debounce<T extends (...args: any[]) => void>(
   fn: T,
   wait = 300,
@@ -12,7 +14,7 @@ export function debounce<T extends (...args: any[]) => void>(
   let timeout: ReturnType<typeof setTimeout> | null = null;
   let lastArgs: Parameters<T> | null = null;
 
-  const later = (context: any) => {
+  const later = (context: unknown) => {
     timeout = null;
     if (!immediate && lastArgs) {
       fn.apply(context, lastArgs);
@@ -20,14 +22,14 @@ export function debounce<T extends (...args: any[]) => void>(
     lastArgs = null;
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const debounced = function (this: any, ...args: Parameters<T>) {
     lastArgs = args;
-    const context = this;
     const callNow = immediate && !timeout;
     if (timeout) clearTimeout(timeout);
-    timeout = setTimeout(() => later(context), wait);
+    timeout = setTimeout(() => later(this), wait);
     if (callNow) {
-      fn.apply(context, args);
+      fn.apply(this, args);
       lastArgs = null;
     }
   } as DebouncedFn<T>;

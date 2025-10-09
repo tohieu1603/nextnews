@@ -1,5 +1,22 @@
 import { stockDatabase } from "../../constants/stockDatabase";
 
+interface StockForAnimation {
+  pe: string;
+  pb: string;
+  roe: string;
+  riskMetrics: {
+    beta: string;
+  };
+  detailedInfo: {
+    analystConsensus: {
+      strongBuy: number;
+      buy: number;
+      hold: number;
+      totalAnalysts: number;
+    };
+  };
+}
+
 export const getStockAnalysis = (code: string) => {
   return stockDatabase[code as keyof typeof stockDatabase] || stockDatabase.VSC;
 };
@@ -11,15 +28,15 @@ export const calculateMarketPosition = (currentPrice: string, week52Low: string,
   return ((current - low) / (high - low)) * 100;
 };
 
-export const getAnimatedValues = (stock: any) => {
+export const getAnimatedValues = (stock: StockForAnimation) => {
   return {
     pe: (parseFloat(stock.pe) / 20) * 100,
     pb: (parseFloat(stock.pb) / 3) * 100,
     roe: parseFloat(stock.roe.replace('%', '')),
     beta: (parseFloat(stock.riskMetrics.beta) / 2) * 100,
-    analystScore: ((stock.detailedInfo.analystConsensus.strongBuy * 5 + 
-                   stock.detailedInfo.analystConsensus.buy * 4 + 
-                   stock.detailedInfo.analystConsensus.hold * 3) / 
+    analystScore: ((stock.detailedInfo.analystConsensus.strongBuy * 5 +
+                   stock.detailedInfo.analystConsensus.buy * 4 +
+                   stock.detailedInfo.analystConsensus.hold * 3) /
                   (stock.detailedInfo.analystConsensus.totalAnalysts * 5)) * 100
   };
 };

@@ -1,12 +1,26 @@
 import { Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-interface SubsidiariesProps {
-  subsidiaries: any[];
-  data?: any;
+interface Subsidiary {
+  company_name: string;
+  sub_own_percent: number;
+  status?: string;
+  share_holder?: string;
 }
 
-export function Subsidiaries({ subsidiaries, data }: SubsidiariesProps) {
+interface SubsidiariesData {
+  symbolData?: {
+    company?: {
+      subsidiaries?: Subsidiary[];
+    };
+  };
+}
+
+interface SubsidiariesProps {
+  data?: SubsidiariesData;
+}
+
+export function Subsidiaries({ data }: SubsidiariesProps) {
   return (
     <div className="p-6 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-2xl border-2 border-indigo-400/30 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-600/10 to-purple-600/10 rounded-full blur-2xl"></div>
@@ -27,7 +41,7 @@ export function Subsidiaries({ subsidiaries, data }: SubsidiariesProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {data?.symbolData?.company?.subsidiaries?.map(
-                (subsidiaries: any, index: number) => (
+                (subsidiary: Subsidiary, index: number) => (
                   <div
                     key={index}
                     className="p-5 bg-slate-700/30 backdrop-blur-sm rounded-xl border border-indigo-400/20"
@@ -35,7 +49,7 @@ export function Subsidiaries({ subsidiaries, data }: SubsidiariesProps) {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h5 className="font-bold text-white mb-1">
-                          {subsidiaries.company_name}
+                          {subsidiary.company_name}
                         </h5>
                         {/* <div className="text-sm text-slate-400 mb-2">
                         {subsidiaries.sub_own_percent}
@@ -65,7 +79,7 @@ export function Subsidiaries({ subsidiaries, data }: SubsidiariesProps) {
                       <div>
                         <span className="text-slate-400">Sở hữu:</span>
                         <div className="font-semibold text-indigo-400">
-                          {(subsidiaries.sub_own_percent * 100).toFixed(2)}%
+                          {(subsidiary.sub_own_percent * 100).toFixed(2)}%
                         </div>
                       </div>
 

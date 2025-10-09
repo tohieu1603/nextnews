@@ -6,9 +6,72 @@ import { ShareholderStructure } from "../sections/ShareholderStructure";
 import { Subsidiaries } from "../sections/Subsidiaries";
 import { calculateMarketPosition } from "@/components/helpers/detailedAnalysisHelpers";
 
+interface Officer {
+  officer_name: string;
+  position_short_name: string;
+  officer_position: string;
+  officer_owner_percent: number;
+  updated_at: string;
+}
+
+interface StockData {
+  currentPrice: string;
+  detailedInfo: {
+    shareholderStructure: unknown;
+    subsidiaries: unknown;
+    esgInfo: {
+      overallRating: string;
+      environmentalScore: string | number;
+      socialScore: string | number;
+      governanceScore: string | number;
+    };
+    riskAssessment: {
+      creditRisk: {
+        level: string;
+        nplRatio: string;
+      };
+      marketRisk: {
+        level: string;
+        var: string;
+      };
+    };
+    [key: string]: unknown;
+  };
+  additionalMetrics: {
+    week52Low: string;
+    week52High: string;
+  };
+  [key: string]: unknown;
+}
+
+interface Subsidiary {
+  company_name: string;
+  sub_own_percent: number;
+  status?: string;
+  share_holder?: string;
+}
+
+interface Shareholder {
+  share_holder: string;
+  share_own_percent: number;
+}
+
+interface CompanyData {
+  symbolData?: {
+    company?: {
+      officers?: Officer[];
+      subsidiaries?: Subsidiary[];
+      shareholders?: Shareholder[];
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 interface GovernanceProps {
-  stock: any;
-  data: any;
+  stock: StockData;
+  data: CompanyData;
 }
 
 export default function GovernanceTab({ stock, data }: GovernanceProps) {
@@ -29,7 +92,7 @@ export default function GovernanceTab({ stock, data }: GovernanceProps) {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {data?.symbolData?.company?.officers?.map(
-              (officer: any, index: number) => (
+              (officer: Officer, index: number) => (
                 <div key={index} className="p-4 bg-slate-700/30 rounded-lg">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white font-bold">
@@ -60,10 +123,7 @@ export default function GovernanceTab({ stock, data }: GovernanceProps) {
       </Card>
 
       {/* Subsidiaries - Full Width */}
-      <Subsidiaries
-        subsidiaries={stock.detailedInfo.subsidiaries}
-        data={data}
-      />
+      <Subsidiaries data={data} />
 
       {/* ESG & Risk - Full Width Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

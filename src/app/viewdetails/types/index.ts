@@ -32,6 +32,8 @@ export interface CompanyInfo {
   readonly history?: string;
   readonly company_profile?: string;
   readonly industry?: string;
+  readonly sector?: string;
+  readonly exchange?: string;
   readonly website?: string;
   readonly no_employees?: number | string;
   readonly charter_capital?: number | string;
@@ -39,10 +41,16 @@ export interface CompanyInfo {
   readonly events?: CompanyEvent[];
   readonly officers?: CompanyOfficer[];
   readonly shareholders?: CompanyShareholder[];
+  readonly [key: string]: unknown;
 }
 
 export interface SymbolIndustryData {
+  readonly id?: number;
+  readonly name?: string;
+  readonly exchange?: string;
   readonly industries?: IndustryInfo[];
+  readonly company?: CompanyInfo;
+  readonly [key: string]: unknown;
 }
 
 export interface IncomeStatementEntry {

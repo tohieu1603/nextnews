@@ -6,10 +6,42 @@ import FinancialsTab from "./tabs/Financials";
 import GovernanceTab from "./tabs/Governace";
 import AnalysisTab from "./tabs/AnalysisTab";
 
-// Import the separated tab components
+interface StockData {
+  symbol: string;
+  currentPrice: string;
+  change: string;
+  changePercent: string;
+  detailedInfo: {
+    shareholderStructure: unknown;
+    subsidiaries: unknown;
+    esgInfo: {
+      overallRating: string;
+      environmentalScore: string | number;
+      socialScore: string | number;
+      governanceScore: string | number;
+    };
+    riskAssessment: {
+      creditRisk: {
+        level: string;
+        nplRatio: string;
+      };
+      marketRisk: {
+        level: string;
+        var: string;
+      };
+    };
+    [key: string]: unknown;
+  };
+  additionalMetrics: {
+    week52Low: string;
+    week52High: string;
+  };
+  [key: string]: unknown;
+}
+
 interface TabsDetailProps {
-  stock: any; // Replace with proper type based on getStockAnalysis return type
-  data: any;
+  stock: StockData | null;
+  data: Record<string, unknown>;
   isPositive: boolean;
 }
 
@@ -18,6 +50,38 @@ export default function TabsDetail({
   data,
   isPositive,
 }: TabsDetailProps) {
+  // Provide fallback stock data if null
+  const stockData: StockData = stock || {
+    symbol: 'N/A',
+    currentPrice: '0',
+    change: '0',
+    changePercent: '0',
+    detailedInfo: {
+      shareholderStructure: null,
+      subsidiaries: null,
+      esgInfo: {
+        overallRating: 'N/A',
+        environmentalScore: 0,
+        socialScore: 0,
+        governanceScore: 0,
+      },
+      riskAssessment: {
+        creditRisk: {
+          level: 'N/A',
+          nplRatio: '0',
+        },
+        marketRisk: {
+          level: 'N/A',
+          var: '0',
+        },
+      },
+    },
+    additionalMetrics: {
+      week52Low: '0',
+      week52High: '0',
+    },
+  };
+
   return (
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList className="grid w-full grid-cols-4 bg-slate-800/60 border border-blue-400/30 p-1">
@@ -54,7 +118,7 @@ export default function TabsDetail({
       {/* Full Width Content */}
       <div className="w-full">
         <TabsContent value="overview">
-          <OverviewTab stock={stock} data={data} isPositive={isPositive} />
+          <OverviewTab stock={stockData} data={data} isPositive={isPositive} />
         </TabsContent>
 
         <TabsContent value="financials">
@@ -62,7 +126,7 @@ export default function TabsDetail({
         </TabsContent>
 
         <TabsContent value="governance">
-          <GovernanceTab stock={stock} data={data} />
+          <GovernanceTab stock={stockData} data={data} />
         </TabsContent>
 
         <TabsContent value="analysis">
