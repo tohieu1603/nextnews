@@ -1,4 +1,4 @@
-import axios from "axios";
+﻿import axios from "axios";
 import {
   CreateNotificationEndpointPayload,
   EnableAutoRenewRequest,
@@ -176,7 +176,7 @@ export const enableAutoRenewSubscription = async (
   payload: EnableAutoRenewRequest
 ) => {
   try {
-    const body: Record<string, any> = {
+    const body: Record<string, unknown> = {
       ...payload,
       payment_method: payload.payment_method ?? "wallet",
     };
@@ -329,9 +329,6 @@ export const getEconomicCalendar = async (
     return { message: "Lỗi khi tải lịch kinh tế." };
   }
 };
-
-
-=======
 // === NOTIFICATION API ===
 
 const withAuth = (token: string) => ({
