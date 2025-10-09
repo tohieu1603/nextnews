@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
+
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/components/ui/utils";
 import { Switch } from "@/components/ui/switch";
@@ -13,23 +15,49 @@ import {
   Infinity,
   RotateCw,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { PurchasedLicense, AutoRenewSubscription } from "@/types";
 
+type PendingAutoRenewAction = "enabling" | "disabling";
+
 interface PurchasedLicensesTabProps {
   licenses: PurchasedLicense[];
-  onToggleAutoRenew: (licenseId: string, currentValue: boolean) => void;
-  onCreateAutoRenew: (license: PurchasedLicense) => void;
+  onToggleAutoRenew: (licenseId: string, currentValue: boolean) => Promise<void> | void;
+  onEnableAutoRenew: (license: PurchasedLicense) => Promise<void> | void;
   loading?: boolean;
 }
 
 export default function PurchasedLicensesTab({
   licenses,
   onToggleAutoRenew,
-  onCreateAutoRenew,
+  onEnableAutoRenew,
   loading = false,
 }: PurchasedLicensesTabProps) {
+  const [pendingAutoRenew, setPendingAutoRenew] = useState<
+    Record<string, PendingAutoRenewAction>
+  >({});
+  const [enablingAutoRenew, setEnablingAutoRenew] = useState<Record<string, boolean>>({});
+
+  const setPendingAction = (licenseId: string, action: PendingAutoRenewAction) => {
+    setPendingAutoRenew((prev) => ({
+      ...prev,
+      [licenseId]: action,
+    }));
+  };
+
+  const clearPendingAction = (licenseId: string) => {
+    setPendingAutoRenew((prev) => {
+      if (!(licenseId in prev)) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[licenseId];
+      return next;
+    });
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("vi-VN", {
@@ -60,8 +88,7 @@ export default function PurchasedLicensesTab({
     if (!endDate) return null;
     const end = new Date(endDate);
     const now = new Date();
-    const diff = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return diff;
+    return Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   };
 
   const getStatusBadge = (license: PurchasedLicense) => {
@@ -111,7 +138,7 @@ export default function PurchasedLicensesTab({
   };
 
   const getSubscriptionStatusLabel = (
-    status: AutoRenewSubscription["status"] | undefined | null
+    status: AutoRenewSubscription["status"] | undefined | null,
   ) => {
     if (!status) return "Không xác định";
     switch (status) {
@@ -152,7 +179,9 @@ export default function PurchasedLicensesTab({
       className="p-4 sm:p-6 lg:p-8 pt-8 sm:pt-10 lg:pt-12 space-y-4 sm:space-y-6 bg-slate-900/40"
     >
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1.5 sm:mb-2">Các mã đã mua</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1.5 sm:mb-2">
+          Các mã đã mua
+        </h2>
         <p className="text-sm sm:text-base text-slate-400">
           Quản lý các mã trading bot và dịch vụ đã mua
         </p>
@@ -173,26 +202,71 @@ export default function PurchasedLicensesTab({
       ) : (
         <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4">
           {licenses.map((license) => {
-            const subscriptionStatus = license.subscription?.status ?? null;
+            const subscription = license.subscription;
+            const subscriptionStatus = subscription?.status ?? null;
+            const subscriptionId =
+              subscription?.subscription_id ?? license.subscription_id ?? null;
+            const isSubscriptionTerminated =
+              subscriptionStatus === "cancelled" ||
+              subscriptionStatus === "completed";
+            const hasSubscriptionRecord = Boolean(subscriptionId);
+            const canManageExistingSubscription =
+              hasSubscriptionRecord && !isSubscriptionTerminated;
+            const needsSubscriptionCreation =
+              !hasSubscriptionRecord || isSubscriptionTerminated;
             const isAutoRenewActive = Boolean(
-              license.subscription &&
-                ((license.subscription.is_active ?? false) ||
-                  subscriptionStatus === "active")
+              subscription &&
+                ((subscription.is_active ?? false) ||
+                  subscriptionStatus === "active"),
             );
-            const canManageAutoRenew = Boolean(
-              license.subscription &&
-                subscriptionStatus &&
-                !["cancelled", "completed"].includes(subscriptionStatus)
-            );
-            const shouldOfferAutoRenew =
+
+            const pendingAction = pendingAutoRenew[license.license_id];
+            const switchPending = pendingAction !== undefined;
+            const isEnabling = Boolean(enablingAutoRenew[license.license_id]);
+            const switchChecked = switchPending
+              ? pendingAction === "enabling"
+              : isAutoRenewActive;
+            const showAutoRenewControls =
               !license.is_lifetime &&
               license.is_active &&
-              license.status === "active" &&
-              !canManageAutoRenew;
+              license.status === "active";
+
             const renewalPrice =
-              license.subscription?.price ??
+              subscription?.price ??
               license.auto_renew_price ??
-              license.purchase_price;
+              license.purchase_price ??
+              0;
+            const defaultCycleDays =
+              license.license_days && license.license_days > 0
+                ? license.license_days
+                : 30;
+
+            const handleAutoRenewChange = async (checked: boolean) => {
+              if (switchPending || needsSubscriptionCreation) {
+                return;
+              }
+
+              if (checked) {
+                if (!isAutoRenewActive) {
+                  setPendingAction(license.license_id, "enabling");
+                  try {
+                    await onToggleAutoRenew(
+                      license.license_id,
+                      isAutoRenewActive,
+                    );
+                  } finally {
+                    clearPendingAction(license.license_id);
+                  }
+                }
+              } else if (canManageExistingSubscription && isAutoRenewActive) {
+                setPendingAction(license.license_id, "disabling");
+                try {
+                  await onToggleAutoRenew(license.license_id, isAutoRenewActive);
+                } finally {
+                  clearPendingAction(license.license_id);
+                }
+              }
+            };
 
             return (
               <Card
@@ -201,227 +275,271 @@ export default function PurchasedLicensesTab({
                   "bg-gradient-to-br from-slate-800/40 to-slate-700/40 border backdrop-blur-sm transition-all",
                   license.is_active && license.status === "active"
                     ? "border-blue-400/20 hover:border-blue-400/40"
-                    : "border-slate-400/20 hover:border-slate-400/30 opacity-75"
+                    : "border-slate-400/20 hover:border-slate-400/30 opacity-75",
                 )}
               >
                 <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0",
-                        license.is_active && license.status === "active"
-                          ? "bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-400/30"
-                          : "bg-gradient-to-br from-slate-500/20 to-gray-500/20 border border-slate-400/30"
-                      )}
-                    >
-                      <ShoppingBag
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div
                         className={cn(
-                          "w-5 h-5 sm:w-6 sm:h-6",
+                          "w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0",
                           license.is_active && license.status === "active"
-                            ? "text-emerald-400"
-                            : "text-slate-400"
+                            ? "bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-400/30"
+                            : "bg-gradient-to-br from-slate-500/20 to-gray-500/20 border border-slate-400/30",
                         )}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-white text-base sm:text-lg truncate">
-                        {license.symbol_name}
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-400 truncate">
-                        Mã license: {license.license_id.substring(0, 8)}...
-                      </p>
-                    </div>
-                  </div>
-                  {getStatusBadge(license)}
-                </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
-                  <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
-                    <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
-                      <Calendar className="w-3 h-3 flex-shrink-0" />
-                      Ngày mua
-                    </p>
-                    <p className="text-xs sm:text-sm font-medium text-white truncate">
-                      {formatDate(license.created_at)}
-                    </p>
-                  </div>
-
-                  {!license.is_lifetime && (
-                    <>
-                      <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
-                        <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
-                          <Calendar className="w-3 h-3 flex-shrink-0" />
-                          Ngày bắt đầu
-                        </p>
-                        <p className="text-xs sm:text-sm font-medium text-white truncate">
-                          {formatDate(license.start_at)}
-                        </p>
-                      </div>
-                      <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
-                        <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
-                          <Clock className="w-3 h-3 flex-shrink-0" />
-                          Hết hạn
-                        </p>
-                        <p className="text-xs sm:text-sm font-medium text-white truncate">
-                          {formatDate(license.end_at)}
-                        </p>
-                      </div>
-                      <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
-                        <p className="text-xs sm:text-sm text-slate-400 mb-1">Thời hạn</p>
-                        <p className="text-xs sm:text-sm font-medium text-white truncate">
-                          {license.license_days} ngày
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
-                    <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
-                      <CreditCard className="w-3 h-3 flex-shrink-0" />
-                      Giá mua
-                    </p>
-                    <p className="text-xs sm:text-sm font-medium text-white truncate">
-                      {formatCurrency(license.purchase_price)}
-                    </p>
-                  </div>
-
-                  <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
-                    <p className="text-xs sm:text-sm text-slate-400 mb-1">Thanh toán</p>
-                    <p className="text-xs sm:text-sm font-medium text-white truncate">
-                      {getPaymentMethodLabel(license.payment_method)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Auto-renew setup call-to-action */}
-                {shouldOfferAutoRenew && (
-                  <div className="mt-3 pt-3 border-t border-slate-600/30">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/40 transition-colors">
-                      <div className="flex items-center gap-2.5 flex-1">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-600/40 flex-shrink-0">
-                          <RotateCw className="w-4 h-4 text-slate-300" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-white">
-                            Thiết lập tự động gia hạn
-                          </p>
-                          <p className="text-xs text-slate-400">
-                            Gia hạn tự động với giá {formatCurrency(renewalPrice)}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => onCreateAutoRenew(license)}
-                        className="bg-emerald-500 hover:bg-emerald-500/90 text-slate-900 font-semibold"
                       >
-                        Bật tự động gia hạn
-                      </Button>
+                        <ShoppingBag
+                          className={cn(
+                            "w-5 h-5 sm:w-6 sm:h-6",
+                            license.is_active && license.status === "active"
+                              ? "text-emerald-400"
+                              : "text-slate-400",
+                          )}
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-white text-base sm:text-lg truncate">
+                          {license.symbol_name}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-slate-400 truncate">
+                          Mã license: {license.license_id.substring(0, 8)}...
+                        </p>
+                      </div>
                     </div>
-                    <div className="mt-2 p-2.5 bg-slate-700/40 rounded-lg border border-slate-600/40">
-                      <p className="text-xs text-slate-300 flex items-center gap-1.5">
-                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>Ví sẽ được trừ tự động trước khi license hết hạn, hãy đảm bảo số dư đủ</span>
+                    {getStatusBadge(license)}
+                  </div>
+
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
+                    <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                      <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
+                        <Calendar className="w-3 h-3 flex-shrink-0" />
+                        Ngày mua
+                      </p>
+                      <p className="text-xs sm:text-sm font-medium text-white truncate">
+                        {formatDate(license.created_at)}
+                      </p>
+                    </div>
+
+                    {!license.is_lifetime && (
+                      <>
+                        <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                          <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
+                            <Calendar className="w-3 h-3 flex-shrink-0" />
+                            Ngày bắt đầu
+                          </p>
+                          <p className="text-xs sm:text-sm font-medium text-white truncate">
+                            {formatDate(license.start_at)}
+                          </p>
+                        </div>
+                        <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                          <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
+                            <Clock className="w-3 h-3 flex-shrink-0" />
+                            Hết hạn
+                          </p>
+                          <p className="text-xs sm:text-sm font-medium text-white truncate">
+                            {formatDate(license.end_at)}
+                          </p>
+                        </div>
+                        <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                          <p className="text-xs sm:text-sm text-slate-400 mb-1">
+                            Thời hạn
+                          </p>
+                          <p className="text-xs sm:text-sm font-medium text-white truncate">
+                            {license.license_days} ngày
+                          </p>
+                        </div>
+                      </>
+                    )}
+
+                    <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                      <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-1 mb-1">
+                        <CreditCard className="w-3 h-3 flex-shrink-0" />
+                        Giá mua
+                      </p>
+                      <p className="text-xs sm:text-sm font-medium text-white truncate">
+                        {formatCurrency(license.purchase_price)}
+                      </p>
+                    </div>
+
+                    <div className="p-2.5 sm:p-3 bg-slate-700/20 rounded-lg">
+                      <p className="text-xs sm:text-sm text-slate-400 mb-1">Thanh toán</p>
+                      <p className="text-xs sm:text-sm font-medium text-white truncate">
+                        {getPaymentMethodLabel(license.payment_method)}
                       </p>
                     </div>
                   </div>
-                )}
 
-                {/* Auto-renew toggle - only show when subscription is available */}
-                {!license.is_lifetime &&
-                 license.is_active &&
-                 license.status === "active" &&
-                 canManageAutoRenew && (
-                  <div className="mt-3 pt-3 border-t border-slate-600/30">
-                    <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/40 transition-colors">
-                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                        <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                          isAutoRenewActive
-                            ? "bg-emerald-500/20"
-                            : "bg-slate-600/30"
-                        )}>
-                          <RotateCw className={cn(
-                            "w-4 h-4",
-                            isAutoRenewActive
-                              ? "text-emerald-400"
-                              : "text-slate-400"
-                          )} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-white">
-                            Tự động gia hạn
-                          </p>
-                          <p className="text-xs text-slate-400 truncate">
-                            Tự động gia hạn khi sắp hết hạn (12 giờ trước)
-                          </p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={isAutoRenewActive}
-                        onCheckedChange={() =>
-                          onToggleAutoRenew(license.license_id, isAutoRenewActive)
-                        }
-                        className="data-[state=checked]:bg-emerald-500 flex-shrink-0 ml-2"
-                      />
-                    </div>
-                    {isAutoRenewActive && (
-                      <div className="mt-2 p-2.5 bg-emerald-500/10 rounded-lg border border-emerald-400/20">
-                        <p className="text-xs text-emerald-300 flex items-center gap-1.5">
-                          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span>Đảm bảo ví có đủ tiền để tự động gia hạn</span>
-                        </p>
-                        <p className="mt-1 text-[11px] text-emerald-200">
-                          Khi gia hạn thành công, thời hạn license hiện tại được kéo dài thêm chu kỳ mới.
-                        </p>
-                      </div>
-                    )}
-                    {license.subscription && (
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                        {license.subscription.next_billing_at && (
-                          <div className="rounded-lg border border-slate-600/30 bg-slate-700/30 p-2.5">
-                            <p className="text-xs text-slate-400 mb-1">
-                              Lần gia hạn tiếp theo
+                  {showAutoRenewControls && (
+                    <div className="mt-3 pt-3 border-t border-slate-600/30">
+                      <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/40 transition-colors">
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          <div
+                            className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+                              switchChecked
+                                ? "bg-emerald-500/20"
+                                : "bg-slate-600/30",
+                            )}
+                          >
+                            <RotateCw
+                              className={cn(
+                                "w-4 h-4",
+                                switchChecked
+                                  ? "text-emerald-400"
+                                  : "text-slate-400",
+                              )}
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-white">
+                              Tự động gia hạn
                             </p>
-                            <p className="text-sm font-medium text-white">
-                              {formatDateTime(license.subscription.next_billing_at)}
+                            <p className="text-xs text-slate-400 truncate">
+                              Gia hạn trước khi hết hạn 12 giờ
                             </p>
                           </div>
-                        )}
-                        {license.subscription.last_success_at && (
-                          <div className="rounded-lg border border-slate-600/30 bg-slate-700/30 p-2.5">
-                            <p className="text-xs text-slate-400 mb-1">
-                              Gia hạn gần nhất
-                            </p>
-                            <p className="text-sm font-medium text-white">
-                              {formatDateTime(license.subscription.last_success_at)}
+                        </div>
+                        <Switch
+                          checked={switchChecked}
+                          disabled={switchPending || needsSubscriptionCreation}
+                          onCheckedChange={(checked) =>
+                            void handleAutoRenewChange(checked)
+                          }
+                          className="data-[state=checked]:bg-emerald-500 flex-shrink-0 ml-2"
+                        />
+                      </div>
+
+                      {switchPending && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-300" />
+                          {pendingAction === "enabling"
+                            ? "Đang bật tự động gia hạn..."
+                            : "Đang tắt tự động gia hạn..."}
+                        </div>
+                      )}
+
+                      {needsSubscriptionCreation ? (
+                        <div className="mt-2 space-y-3">
+                          <div className="p-2.5 bg-slate-700/40 rounded-lg border border-slate-600/40">
+                            <p className="text-xs text-slate-300 flex items-center gap-1.5">
+                              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span>
+                                License này chưa đăng ký tự động gia hạn. Bạn có thể bật ngay tại đây.
+                              </span>
                             </p>
                           </div>
-                        )}
-                        <div className="rounded-lg border border-slate-600/30 bg-slate-700/30 p-2.5 sm:col-span-2">
-                          <p className="text-xs text-slate-400 mb-1">
-                            Trạng thái
-                          </p>
-                          <p className="text-sm font-medium text-white">
-                            {getSubscriptionStatusLabel(license.subscription.status)}
+                          <Button
+                            onClick={async () => {
+                              if (isEnabling) return;
+                              setEnablingAutoRenew((prev) => ({
+                                ...prev,
+                                [license.license_id]: true,
+                              }));
+                              try {
+                                await onEnableAutoRenew(license);
+                              } finally {
+                                setEnablingAutoRenew((prev) => {
+                                  const next = { ...prev };
+                                  delete next[license.license_id];
+                                  return next;
+                                });
+                              }
+                            }}
+                            disabled={isEnabling}
+                            className="bg-emerald-500 hover:bg-emerald-500/90 text-slate-900 font-semibold"
+                          >
+                            {isEnabling ? (
+                              <span className="flex items-center gap-2 text-sm">
+                                <Loader2 className="h-4 w-4 animate-spin" /> Đang bật tự động gia hạn...
+                              </span>
+                            ) : (
+                              "Bật tự động gia hạn"
+                            )}
+                          </Button>
+                          <p className="text-[11px] text-slate-400">
+                            Hệ thống sẽ dùng giá {formatCurrency(renewalPrice)} mỗi {defaultCycleDays} ngày và trừ ví trước hạn 12 giờ.
                           </p>
                         </div>
-                        {typeof license.subscription.consecutive_failures === "number" &&
-                          license.subscription.consecutive_failures > 0 && (
-                            <div className="rounded-lg border border-amber-600/40 bg-amber-500/10 p-2.5 sm:col-span-2">
-                              <p className="text-xs text-amber-200 mb-1">
-                                Cảnh báo
+                      ) : (
+                        <div className="mt-2 space-y-3">
+                          {switchChecked && (
+                            <div className="p-2.5 bg-emerald-500/10 rounded-lg border border-emerald-400/20">
+                              <p className="text-xs text-emerald-300 flex items-center gap-1.5">
+                                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                                <span>
+                                  Đảm bảo ví có đủ tiền để tự động gia hạn
+                                </span>
                               </p>
-                              <p className="text-sm text-amber-100">
-                                Có {license.subscription.consecutive_failures} lần gia hạn thất bại liên tiếp. Vui lòng kiểm tra số dư ví.
+                              <p className="mt-1 text-[11px] text-emerald-200">
+                                Khi gia hạn thành công, thời hạn license hiện tại được kéo dài thêm chu kỳ mới.
                               </p>
                             </div>
                           )}
-                      </div>
-                    )}
-                  </div>
-                )}
 
+                          {subscription && (
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {typeof subscription.price === "number" && (
+                                <div className="rounded-lg border border-slate-600/30 bg-slate-700/30 p-2.5">
+                                  <p className="text-xs text-slate-400 mb-1">Giá gia hạn</p>
+                                  <p className="text-sm font-medium text-white">
+                                    {formatCurrency(subscription.price)}
+                                  </p>
+                                </div>
+                              )}
+                              {typeof subscription.cycle_days === "number" && (
+                                <div className="rounded-lg border border-slate-600/30 bg-slate-700/30 p-2.5">
+                                  <p className="text-xs text-slate-400 mb-1">Chu kỳ gia hạn</p>
+                                  <p className="text-sm font-medium text-white">
+                                    {subscription.cycle_days} ngày
+                                  </p>
+                                </div>
+                              )}
+                              {subscription.next_billing_at && (
+                                <div className="rounded-lg border border-slate-600/30 bg-slate-700/30 p-2.5">
+                                  <p className="text-xs text-slate-400 mb-1">Lần gia hạn tiếp theo</p>
+                                  <p className="text-sm font-medium text-white">
+                                    {formatDateTime(subscription.next_billing_at)}
+                                  </p>
+                                </div>
+                              )}
+                              {subscription.last_success_at && (
+                                <div className="rounded-lg border border-slate-600/30 bg-slate-700/30 p-2.5">
+                                  <p className="text-xs text-slate-400 mb-1">Gia hạn gần nhất</p>
+                                  <p className="text-sm font-medium text-white">
+                                    {formatDateTime(subscription.last_success_at)}
+                                  </p>
+                                </div>
+                              )}
+                              <div className="rounded-lg border border-slate-600/30 bg-slate-700/30 p-2.5 sm:col-span-2">
+                                <p className="text-xs text-slate-400 mb-1">Trạng thái</p>
+                                <p className="text-sm font-medium text-white">
+                                  {getSubscriptionStatusLabel(subscription.status)}
+                                </p>
+                              </div>
+                              {typeof subscription.consecutive_failures === "number" &&
+                                subscription.consecutive_failures > 0 && (
+                                  <div className="rounded-lg border border-amber-600/40 bg-amber-500/10 p-2.5 sm:col-span-2">
+                                    <p className="text-xs text-amber-200 mb-1">Cảnh báo</p>
+                                    <p className="text-sm text-amber-100">
+                                      Có {subscription.consecutive_failures} lần gia hạn thất bại liên tiếp. Vui lòng kiểm tra số dư ví.
+                                    </p>
+                                  </div>
+                                )}
+                            </div>
+                          )}
+
+                          {!switchChecked && (
+                            <div className="p-2.5 bg-slate-700/40 rounded-lg border border-slate-600/40">
+                              <p className="text-xs text-slate-300">
+                                Tự động gia hạn đang tắt. Bật lại để hệ thống tiếp tục gia hạn khi license sắp hết hạn.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );

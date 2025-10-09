@@ -139,6 +139,28 @@ export interface SepayPaymentIntent {
   message: string;
 }
 
+// Symbol Access Check (from /api/sepay/symbol/{symbol_id}/access)
+export interface SymbolAccessCheckResponse {
+  has_access: boolean;
+  license_id?: string;
+  symbol_id?: number;
+  symbol_name?: string;
+  start_at?: string;
+  end_at?: string | null;
+  is_lifetime?: boolean;
+  expires_soon?: boolean;
+}
+
+export interface EnableAutoRenewRequest {
+  symbol_id: number;
+  price?: number | string;
+  cycle_days?: number;
+  payment_method?: "wallet";
+  grace_period_hours?: number;
+  retry_interval_minutes?: number;
+  max_retry_attempts?: number;
+}
+
 // Purchased Licenses Types (from /api/sepay/symbol/licenses)
 export interface PurchasedLicense {
   license_id: string;
@@ -197,4 +219,36 @@ export interface AutoRenewAttempt {
   error_code: string | null;
   error_message: string | null;
   ran_at: string;
+}
+
+// Notification module types
+export type NotificationChannel = "telegram" | "zalo" | "email";
+
+export interface NotificationEndpoint {
+  endpoint_id: string;
+  channel: NotificationChannel;
+  address: string;
+  details: Record<string, unknown> | null;
+  is_primary: boolean;
+  verified: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface CreateNotificationEndpointPayload {
+  channel: NotificationChannel;
+  address: string;
+  is_primary?: boolean;
+  details?: Record<string, unknown>;
+}
+
+export interface UpdateNotificationEndpointPayload {
+  is_primary?: boolean;
+  verified?: boolean;
+  details?: Record<string, unknown>;
+}
+
+export interface VerifyNotificationEndpointPayload {
+  auto_verify?: boolean;
+  verification_code?: string;
 }
