@@ -3,7 +3,7 @@ import axios from "axios";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_ORIGIN || "http://localhost:8000";
 
 interface PaymentIntentStatus {
   intent_id: string;
@@ -31,7 +31,13 @@ interface AuthState {
   fetchWallet: () => Promise<WalletInfo | null>;
   createTopUp: (amount: number, bankCode?: string) => Promise<TopUpIntent | null>;
   checkTopUpStatus: (intentId: string) => Promise<TopUpStatus | null>;
-  fetchPaymentHistory: (page?: number, limit?: number, status?: string) => Promise<PaymentHistoryResponse | null>;
+  fetchPaymentHistory: (
+    page?: number,
+    limit?: number,
+    status?: string,
+    purpose?: string,
+    search?: string
+  ) => Promise<PaymentHistoryResponse | null>;
   // Symbol purchase methods
   purchaseSymbol: (params: {
     symbolId: number;
@@ -217,7 +223,13 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      fetchPaymentHistory: async (page = 1, limit = 10, status = "succeeded") => {
+      fetchPaymentHistory: async (
+        page = 1,
+        limit = 10,
+        status = "succeeded",
+        purpose?: string,
+        search?: string
+      ) => {
         try {
           const token = get().access_token;
           if (!token) {
@@ -228,7 +240,13 @@ export const useAuthStore = create<AuthState>()(
           const { data } = await axios.get<PaymentHistoryResponse>(
             `${API_BASE_URL}/api/sepay/payments/user`,
             {
-              params: { page, limit, status },
+              params: {
+                page,
+                limit,
+                status: status ?? "",
+                purpose: purpose ?? "",
+                search: search ?? "",
+              },
               headers: { Authorization: `Bearer ${token}` },
             }
           );

@@ -424,7 +424,7 @@ export const verifyNotificationEndpoint = async (
  */
 export const getGoogleAuthUrl = async () => {
   try {
-    const response = await api.get("/auth/google/auth-url", {
+    const response = await api.get("/auth/google/auth-url?state=a", {
       withCredentials: true,
     });
     return response.data;
