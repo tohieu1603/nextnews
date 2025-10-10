@@ -24,6 +24,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { getCompanyDetails, getNameData } from "@/services/api";
 import { useRouter } from "next/navigation";
 import { searchStockSuggestions, StockSuggestion } from "@/constants/stockSuggestions";
+import { usePathname } from "next/navigation";
 
 type UserProfile = {
 
@@ -142,7 +143,7 @@ export function Header() {
 
   const { user, wallet, isLoggedIn, logout, fetchWallet } = useAuthStore();
   const router = useRouter();
-
+  const pathname = usePathname();
   // Fetch wallet when user is logged in
   useEffect(() => {
     if (isLoggedIn && user && !wallet) {
@@ -219,14 +220,6 @@ export function Header() {
       label: "Tổng quan",
       icon: <BarChart3 className="w-4 h-4" />,
     },
-    // {
-    //   label: "Kỹ thuật",
-    //   icon: <TrendingUp className="w-4 h-4" />,
-    // },
-    // {
-    //   label: "Tin tức",
-    //   icon: <Newspaper className="w-4 h-4" />,
-    // },
   ];
 
   const breakingNews = [
@@ -478,18 +471,6 @@ export function Header() {
                         >
                           Tài khoản của tôi
                         </Link>
-                        <a
-                          href="#"
-                          className="block px-4 py-2 text-sm text-slate-300 hover:bg-blue-500/20 hover:text-white transition-colors"
-                        >
-                          Bot giao dịch
-                        </a>
-                        <a
-                          href="#"
-                          className="block px-4 py-2 text-sm text-slate-300 hover:bg-blue-500/20 hover:text-white transition-colors"
-                        >
-                          Cài đặt
-                        </a>
                         <button
                           type="button"
                           onClick={handleLogout}
@@ -539,6 +520,7 @@ export function Header() {
         </div>
 
         {/* Desktop Navigation - Enhanced Search Bar */}
+        {!pathname.startsWith("/profile") && (
         <div className="hidden md:block py-3 lg:py-4">
           <div className="max-w-6xl mx-auto px-2 lg:px-4">
             {/* Search Bar with Filter Tabs - Responsive Enhanced */}
@@ -643,6 +625,7 @@ export function Header() {
             )}
           </div>
         </div>
+        )}
 
         {/* Mobile Navigation - Enhanced */}
         {isMobileMenuOpen && (
@@ -667,6 +650,7 @@ export function Header() {
               </div>
 
               {/* Mobile Search Input - Enhanced */}
+              
               <form onSubmit={handleSearch} className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                 <Input
@@ -685,6 +669,7 @@ export function Header() {
                   Tìm
                 </Button>
               </form>
+            
 
               {/* Mobile Stock Suggestions - Responsive */}
               {showSuggestions && suggestions.length > 0 && (
@@ -760,6 +745,8 @@ export function Header() {
             </div>
           </div>
         )}
+        
+        
       </div>
     </header>
   );

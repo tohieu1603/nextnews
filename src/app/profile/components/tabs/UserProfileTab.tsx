@@ -91,7 +91,6 @@ export default function UserProfileTab({
           </div>
         </div>
       </div>
-
       <Card className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-12 bg-gradient-to-br from-slate-800/40 to-slate-700/40 border border-blue-400/20 backdrop-blur-sm relative">
         {/* Avatar Section - Show first on mobile */}
         <div className="lg:col-span-1 lg:order-last flex flex-col items-center justify-center space-y-3 sm:space-y-4 p-4 sm:p-6 lg:p-0">
@@ -133,10 +132,8 @@ export default function UserProfileTab({
             <p>Định dạng: .JPEG, .PNG</p>
           </div>
         </div>
-
         {/* Divider - Desktop only */}
         <div className="hidden lg:block absolute left-2/3 top-1/2 transform -translate-y-1/2 w-px h-48 bg-gray-300/20" />
-
         {/* Form Section */}
         <div className="lg:col-span-2">
           <Card className="bg-transparent border-none">

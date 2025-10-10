@@ -691,10 +691,9 @@ export default function UserProfilePage() {
         </div>
 
         {/* Main Layout Wrapper */}
-        <div className="flex">
-
+        <div className="flex min-h-screen bg-slate-900">
           {/* Sidebar - Desktop Only, Fixed Position */}
-          <aside className="hidden md:block fixed left-0 w-64 lg:w-72 xl:w-80 h-[calc(100vh-8rem)] overflow-y-auto">
+          <aside className="hidden md:block w-64 lg:w-72 xl:w-80 flex-shrink-0">
             <Sidebar
               user={user}
               membershipDays={membershipDays}
@@ -708,7 +707,7 @@ export default function UserProfilePage() {
           </aside>
 
           {/* Main Content Area */}
-          <main className="flex-1 md:ml-64 lg:ml-72 xl:ml-80 w-full">
+          <main className="flex-1 w-full">
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}

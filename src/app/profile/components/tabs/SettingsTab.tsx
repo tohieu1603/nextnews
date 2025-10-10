@@ -553,21 +553,21 @@ export default function SettingsTab({
           className="flex flex-col gap-4"
         >
           <TabsList className="w-full justify-start gap-2 rounded-2xl border border-slate-800/60 bg-slate-800/40 p-1.5 ">
-            <TabsTrigger value="autoRenewal" className="gap-2 px-4 py-2">
+            {/* <TabsTrigger value="autoRenewal" className="gap-2 px-4 py-2">
               <RefreshCw className="h-4 w-4 text-orange-400" />
               Gia hạn
-            </TabsTrigger>
+            </TabsTrigger> */}
             <TabsTrigger value="notifications" className="gap-2 px-4 py-2">
               <Bell className="h-4 w-4 text-purple-400" />
               Thông báo
             </TabsTrigger>
-            <TabsTrigger value="security" className="gap-2 px-4 py-2">
+            {/* <TabsTrigger value="security" className="gap-2 px-4 py-2">
               <Shield className="h-4 w-4 text-red-400" />
               Bảo mật
-            </TabsTrigger>
+            </TabsTrigger> */}
           </TabsList>
 
-          <UiTabsContent
+          {/* <UiTabsContent
             value="autoRenewal"
             className="rounded-2xl border border-slate-800/60 bg-gradient-to-br from-slate-800/40 to-slate-700/40 p-6"
           >
@@ -650,7 +650,7 @@ export default function SettingsTab({
                 </div>
               )}
             </div>
-          </UiTabsContent>
+          </UiTabsContent> */}
 
           <UiTabsContent
             value="notifications"
@@ -967,7 +967,7 @@ export default function SettingsTab({
             </div>
           </UiTabsContent>
 
-          <UiTabsContent
+          {/* <UiTabsContent
             value="security"
             className="rounded-2xl border border-slate-800/60 bg-gradient-to-br from-slate-800/40 to-slate-700/40 p-6"
           >
@@ -1004,7 +1004,7 @@ export default function SettingsTab({
                 </Button>
               </div>
             </div>
-          </UiTabsContent>
+          </UiTabsContent> */}
         </UiTabs>
         <Dialog
           open={emailVerification.open}

@@ -1,9 +1,13 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
 import { SearchResultsPage } from "../viewdetails/[id]/components/tabs/SearchResultsPage";
 
-export default function SearchPage() {
+const loadingFallback = <p>Loading search results...</p>;
+
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get("q") || "";
@@ -22,5 +26,13 @@ export default function SearchPage() {
       onBack={handleBack}
       onDetailedAnalysis={handleDetailedAnalysis}
     />
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={loadingFallback}>
+      <SearchPageContent />
+    </Suspense>
   );
 }
