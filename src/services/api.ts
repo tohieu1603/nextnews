@@ -11,7 +11,7 @@ const API_URL = `${process.env.NEXT_PUBLIC_API_ORIGIN}/api`;
 console.log("API_URLLLLL", API_URL);
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 30000,
 });
 
 export interface EconomicCalendarApiEvent {
@@ -38,29 +38,27 @@ export const getSymbolData = async (symbol: string) => {
     const response = await api.get(`/stocks/symbols?limit=8`);
 
     if (!response?.data || response.data.length === 0) {
-      return { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
+      return { message: "Đang cập nhật dữ liệu…" };
     }
 
     return response.data;
   } catch (error) {
     console.error("getSymbolData error:", error);
-    return { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
+    return { message: "Đang cập nhật dữ liệu…" };
   }
 };
 
 // Lấy dữ liệu theo tên mã
 export const getNameData = async (code: string) => {
   try {
-    const response = await api.get(`/stocks/symbols/by-name/${code}`);
-
+    const response = await api.get(`/stocks/symbols/by-name/${code}?limit=""`);
     if (!response?.data) {
-      return { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
+      return { message: "Đang cập nhật dữ liệu…" };
     }
-
     return response.data;
   } catch (error) {
     console.error("getNameData error:", error);
-    return { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
+    return { message: "Đang cập nhật dữ liệu…" };
   }
 };
 // export const getSymbolId = async (symbolId : string) => {
@@ -68,13 +66,13 @@ export const getNameData = async (code: string) => {
 //     const response = await api.get(`/stocks/symbols/${symbolId}`);
 
 //     if (!response?.data) {
-//       return { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
+//       return { message: "Đang cập nhật dữ liệu…" };
 //     }
 
 //     return response.data;
 //   } catch (error) {
 //     console.error("getSymbolId error:", error);
-//     return { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
+//     return { message: "Đang cập nhật dữ liệu…" };
 //   }
 // };
 // export const getSymbolByName = async (name: string) => {
@@ -86,7 +84,7 @@ export const getNameData = async (code: string) => {
 //   }
 // Lấy chi tiết công ty
 export const getCompanyDetails = async (symbolId: number): Promise<Record<string, unknown>> => {
-  console.log("ðŸ“ž getCompanyDetails called with symbolId:", symbolId);
+  console.log("🔍 getCompanyDetails called with symbolId:", symbolId);
   const endpoints = [
     { key: "symbolData", url: `/stocks/symbols/${symbolId}` },
     { key: "balanceData", url: `/calculate/balances/${symbolId}` },
@@ -95,7 +93,7 @@ export const getCompanyDetails = async (symbolId: number): Promise<Record<string
     { key: "ratiosData", url: `/calculate/ratios/${symbolId}` },
   ];
 
-  console.log("ðŸŒ API endpoints:", endpoints.map(e => e.url));
+  console.log("🔍 API endpoints:", endpoints.map(e => e.url));
 
   const results = await Promise.allSettled(
     endpoints.map((ep) => api.get(ep.url))
@@ -106,22 +104,22 @@ export const getCompanyDetails = async (symbolId: number): Promise<Record<string
   results.forEach((res, i) => {
     if (res.status === "fulfilled" && res.value?.data) {
       data[endpoints[i].key] = res.value.data;
-      console.log(`âœ… ${endpoints[i].key}:`, Array.isArray(res.value.data) ? `${res.value.data.length} items` : 'object');
+      console.log(`✅ ${endpoints[i].key}:`, Array.isArray(res.value.data) ? `${res.value.data.length} items` : 'object');
     } else {
       const error = res.status === "rejected" ? res.reason : "Unknown error";
       // Only log if it's not a 404 (expected for missing data)
       if (error?.response?.status !== 404) {
-        console.warn(`âš ï¸ Failed to fetch ${endpoints[i].key}:`, {
+        console.warn(`🔍 Failed to fetch ${endpoints[i].key}:`, {
           url: endpoints[i].url,
           status: error?.response?.status,
           message: error?.message,
         });
       }
-      data[endpoints[i].key] = { message: "Äang cáº­p nháº­t dá»¯ liá»‡uâ€¦" };
+      data[endpoints[i].key] = { message: "Đang cập nhật dữ liệu…" };
     }
   });
 
-  console.log("ss¦ Final data:", data);
+  console.log("🔍 Final data:", data);
   return data;
 };
 
@@ -302,19 +300,58 @@ export const getAutoRenewAttempts = async (
     throw error;
   }
 };
+type EconomicCalendarResponse =
+  | EconomicCalendarApiEvent[]
+  | {
+      value?: EconomicCalendarApiEvent[];
+      events?: EconomicCalendarApiEvent[];
+      data?: EconomicCalendarApiEvent[];
+      results?: EconomicCalendarApiEvent[];
+      Count?: number;
+      count?: number;
+      total?: number;
+    };
+
+const pickCalendarEvents = (
+  payload: EconomicCalendarResponse | undefined
+): { events: EconomicCalendarApiEvent[]; total: number } => {
+  if (!payload) {
+    return { events: [], total: 0 };
+  }
+
+  if (Array.isArray(payload)) {
+    return { events: payload, total: payload.length };
+  }
+
+  const events =
+    (Array.isArray(payload.value) && payload.value) ||
+    (Array.isArray(payload.events) && payload.events) ||
+    (Array.isArray(payload.data) && payload.data) ||
+    (Array.isArray(payload.results) && payload.results) ||
+    [];
+
+  const total =
+    typeof payload.Count === "number"
+      ? payload.Count
+      : typeof payload.count === "number"
+      ? payload.count
+      : typeof payload.total === "number"
+      ? payload.total
+      : events.length;
+
+  return { events, total };
+};
+
 export const getEconomicCalendar = async (
   date_from: string,
   date_to: string
 ) => {
   try {
-    const response = await api.get<{
-      value?: EconomicCalendarApiEvent[];
-      Count?: number;
-    }>(`/calendar/`, {
+    const response = await api.get<EconomicCalendarResponse>(`/calendar/`, {
       params: { date_from, date_to },
     });
 
-    const events = response?.data?.value;
+    const { events, total } = pickCalendarEvents(response?.data);
 
     if (!Array.isArray(events) || events.length === 0) {
       return { message: "Không có dữ liệu lịch kinh tế." };
@@ -322,10 +359,10 @@ export const getEconomicCalendar = async (
 
     return {
       events,
-      total: response.data?.Count ?? events.length,
+      total,
     };
   } catch (error) {
-    console.error("getEconomicCalendar error:", error);
+    console.error("getEconomicCalendar Lịch error:", error);
     return { message: "Lỗi khi tải lịch kinh tế." };
   }
 };

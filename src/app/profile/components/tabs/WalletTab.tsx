@@ -191,14 +191,14 @@ export default function WalletTab() {
     <div>
       <TabsContent
         value="wallet"
-        className="p-8 pt-12 space-y-6 bg-slate-900/40"
+        className="space-y-6 bg-slate-900/40 px-4 py-6 sm:p-8 sm:pt-12"
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-white mb-2">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1 text-center sm:text-left">
+            <h2 className="text-2xl font-bold text-white sm:text-3xl">
               Ví & Nạp tiền
             </h2>
-            <p className="text-slate-400">
+            <p className="text-slate-400 text-sm sm:text-base">
               Quản lý ví và nạp tiền vào tài khoản
             </p>
           </div>
@@ -206,7 +206,7 @@ export default function WalletTab() {
             onClick={handleRefreshWallet}
             disabled={isLoading}
             variant="outline"
-            className="border-emerald-400/30 text-emerald-400 hover:bg-emerald-400/10"
+            className="w-full sm:w-auto border-emerald-400/30 text-emerald-400 hover:bg-emerald-400/10"
           >
             <RefreshCw
               className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")}
@@ -224,14 +224,14 @@ export default function WalletTab() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-center p-6 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-lg border border-emerald-400/30">
-              <div className="text-3xl font-bold text-white mb-2">
+            <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-lg border border-emerald-400/30">
+              <div className="text-2xl font-bold text-white sm:text-3xl">
                 {wallet ? formatCurrency(wallet.balance) : "0"} VNĐ
               </div>
               <p className="text-emerald-400 text-sm">Số dư hiện tại</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="text-center p-3 bg-slate-700/30 rounded-lg">
                 <p className="text-slate-400 text-sm">Trạng thái</p>
                 <p
@@ -278,7 +278,7 @@ export default function WalletTab() {
                 )}
                 placeholder="0"
               />
-              <div className="flex items-center justify-between mt-1">
+              <div className="flex flex-col gap-1 mt-2 sm:mt-1 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-slate-400">
                   Số tiền tối thiểu: 5,000 VNĐ
                 </p>
@@ -291,14 +291,14 @@ export default function WalletTab() {
             </div>
 
             {/* Quick amount buttons */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {[100000, 500000, 1000000].map((amount) => (
                 <Button
                   key={amount}
                   variant="outline"
                   size="sm"
                   onClick={() => setTopUpAmount(amount)}
-                  className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 hover:text-white font-bold text-base py-5"
+                  className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 hover:text-white font-bold text-sm py-4 sm:text-base sm:py-5"
                 >
                   {formatCurrency(amount)}
                 </Button>
@@ -308,7 +308,7 @@ export default function WalletTab() {
             <Button
               onClick={handleTopUp}
               disabled={topUpAmount < 5000 || isLoading}
-              className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white disabled:opacity-50 font-bold py-5 text-base"
+              className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white disabled:opacity-50 font-bold py-4 text-base sm:py-5 sm:text-lg"
             >
               {isLoading ? (
                 <>
@@ -348,7 +348,7 @@ export default function WalletTab() {
 
       {/* Top-up QR Dialog */}
       <Dialog open={showTopUpDialog} onOpenChange={handleCloseDialog}>
-        <DialogContent className="bg-slate-800 border-slate-600 text-white max-w-md">
+        <DialogContent className="bg-slate-800 border-slate-600 text-white w-full max-w-md sm:max-w-lg p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <QrCode className="w-5 h-5 text-emerald-400" />
@@ -365,7 +365,7 @@ export default function WalletTab() {
             {/* QR Code Display */}
             <div className="flex justify-center">
               {topUpData?.qr_code_url ? (
-                <div className="w-64 h-64 bg-white rounded-lg p-2 flex items-center justify-center">
+                <div className="w-52 h-52 sm:w-64 sm:h-64 bg-white rounded-lg p-2 flex items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={topUpData.qr_code_url}
@@ -374,7 +374,7 @@ export default function WalletTab() {
                   />
                 </div>
               ) : (
-                <div className="w-64 h-64 bg-white rounded-lg flex items-center justify-center">
+                <div className="w-52 h-52 sm:w-64 sm:h-64 bg-white rounded-lg flex items-center justify-center">
                   <RefreshCw className="w-12 h-12 text-slate-400 animate-spin" />
                 </div>
               )}
@@ -383,13 +383,13 @@ export default function WalletTab() {
             {/* Payment Details */}
             {topUpData && (
               <div className="space-y-3 p-4 bg-slate-700/30 rounded-lg border border-slate-600/30">
-                <div className="flex justify-between">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-slate-400">Ngân hàng:</span>
                   <span className="text-white font-semibold">
                     {topUpData.bank_code}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-slate-400">Số tài khoản:</span>
                   <div className="flex items-center gap-2">
                     <span className="text-white font-mono text-sm">
@@ -407,13 +407,13 @@ export default function WalletTab() {
                     </Button>
                   </div>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-slate-400">Chủ tài khoản:</span>
                   <span className="text-white text-sm">
                     {topUpData.account_name}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-slate-400">Nội dung CK:</span>
                   <div className="flex items-center gap-2">
                     <span className="text-white font-mono text-sm">
@@ -500,7 +500,7 @@ export default function WalletTab() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
             {paymentStatus === "success" ? (
               <Button
                 onClick={handleCloseDialog}

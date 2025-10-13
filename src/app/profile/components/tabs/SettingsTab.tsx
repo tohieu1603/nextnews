@@ -549,7 +549,7 @@ export default function SettingsTab({
         </div>
 
         <UiTabs
-          defaultValue="autoRenewal"
+          defaultValue="notifications"
           className="flex flex-col gap-4"
         >
           <TabsList className="w-full justify-start gap-2 rounded-2xl border border-slate-800/60 bg-slate-800/40 p-1.5 ">
