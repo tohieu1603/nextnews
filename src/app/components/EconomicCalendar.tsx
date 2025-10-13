@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
@@ -21,7 +21,7 @@ const EconomicBarChart = dynamic(() => import("./EconomicBarChart"), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-      Dang tai bieu do...
+      Đang tải biểu đồ...
     </div>
   ),
 });
@@ -123,9 +123,8 @@ const formatRangeLabel = (startISO: string, endISO: string): string => {
     start.getFullYear() === end.getFullYear() &&
     start.getMonth() === end.getMonth()
   ) {
-    return `${start.getDate()}-${end.getDate()} Tháng ${
-      start.getMonth() + 1
-    }, ${start.getFullYear()}`;
+    return `${start.getDate()}-${end.getDate()} Tháng ${start.getMonth() + 1
+      }, ${start.getFullYear()}`;
   }
   const startLabel = `${String(start.getDate()).padStart(2, "0")}/${String(
     start.getMonth() + 1
@@ -136,9 +135,22 @@ const formatRangeLabel = (startISO: string, endISO: string): string => {
   return `${startLabel} - ${endLabel}`;
 };
 
-const mapImportance = (value: number): Importance => {
-  if (value >= 3) return "high";
-  if (value === 2) return "medium";
+const mapImportance = (value: number | string | null | undefined): Importance => {
+  if (typeof value === "number" && !Number.isNaN(value)) {
+    if (value >= 3) return "high";
+    if (value === 2) return "medium";
+    return "low";
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "high" || normalized === "medium" || normalized === "low") {
+      return normalized as Importance;
+    }
+    const numeric = Number.parseInt(normalized, 10);
+    if (!Number.isNaN(numeric)) {
+      return mapImportance(numeric);
+    }
+  }
   return "low";
 };
 
@@ -161,15 +173,91 @@ const toSortValue = (
   return date.getTime();
 };
 
-const normalizeEvent = (item: EconomicCalendarApiEvent): EconomicEvent => {
-  const displayTime = item.all_day ? "Cả ngày" : item.time ?? "--";
+const sanitizeDateString = (value?: string | null): string | null => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.includes("T")) {
+    return sanitizeDateString(trimmed.split("T")[0]);
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  if (/^\d{8}$/.test(trimmed)) {
+    const year = trimmed.slice(0, 4);
+    const month = trimmed.slice(4, 6);
+    const day = trimmed.slice(6, 8);
+    return `${year}-${month}-${day}`;
+  }
+  const parsed = new Date(trimmed);
+  if (!Number.isNaN(parsed.getTime())) {
+    return formatDateISO(parsed);
+  }
+  return null;
+};
+
+const sanitizeTimeString = (value?: string | null): string | null => {
+  if (!value) return null;
+  const trimmed = value.trim().replace(/Z$/, "");
+  if (!trimmed) return null;
+  const match = trimmed.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const [, hour, minute] = match;
+  return `${hour.padStart(2, "0")}:${minute}`;
+};
+
+const buildEventId = (
+  event: EconomicCalendarApiEvent,
+  date: string,
+  time: string | null
+): string => {
+  if (event.event_id && event.event_id.trim().length > 0) {
+    return event.event_id;
+  }
+  const extras = [
+    event.country_code ?? "",
+    event.title ?? "",
+    time ?? (event.all_day ? "all-day" : ""),
+  ]
+    .filter(Boolean)
+    .join("-")
+    .replace(/\s+/g, "-");
+  return `${date}-${extras}` || `${date}-${Math.random().toString(36).slice(2)}`;
+};
+
+const normalizeEvent = (
+  item: EconomicCalendarApiEvent
+): EconomicEvent | null => {
+  const eventDateTimeParts = item.event_datetime
+    ? item.event_datetime.split("T")
+    : [];
+  const dateFromDateTime = eventDateTimeParts[0];
+  const timeFromDateTime = eventDateTimeParts[1];
+
+  const date =
+    sanitizeDateString(item.date) ??
+    sanitizeDateString(dateFromDateTime ?? null);
+
+  if (!date) {
+    return null;
+  }
+
+  const rawTime = item.all_day
+    ? null
+    : sanitizeTimeString(item.time) ??
+        sanitizeTimeString(timeFromDateTime ?? null);
+
+  const displayTime = item.all_day ? "Ca ngay" : rawTime ?? "--";
+  const sortValue = toSortValue(date, rawTime, item.all_day);
+  const id = buildEventId(item, date, rawTime);
+
   return {
-    id: item.event_id,
-    date: item.date,
-    time: item.time ?? null,
+    id,
+    date,
+    time: rawTime,
     displayTime,
-    sortValue: toSortValue(item.date, item.time ?? null, item.all_day),
-    country: item.country,
+    sortValue,
+    country: item.country || item.country_code || "Dang cap nhat",
     currency: item.currency || undefined,
     importance: mapImportance(item.importance),
     title: item.title,
@@ -236,6 +324,7 @@ export function EconomicCalendar() {
 
       const mapped = response.events
         .map(normalizeEvent)
+        .filter((event): event is EconomicEvent => event !== null)
         .sort((a, b) => a.sortValue - b.sortValue);
 
       setEvents(mapped);
@@ -331,7 +420,7 @@ export function EconomicCalendar() {
               size="icon"
               className="text-slate-400 hover:text-white hover:bg-slate-700/50"
               onClick={handlePrevWeek}
-              aria-label="Tuan truoc"
+              aria-label="Tuần trước"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
@@ -341,14 +430,14 @@ export function EconomicCalendar() {
               className="text-slate-300 hover:text-white hover:bg-slate-700/50"
               onClick={handleToday}
             >
-              Hôm nay
+              Khoảng thời gian
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="text-slate-400 hover:text-white hover:bg-slate-700/50"
               onClick={handleNextWeek}
-              aria-label="Tuần sau"
+              aria-label="Tuần tiếp theo"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -362,11 +451,10 @@ export function EconomicCalendar() {
             return (
               <div
                 key={day.date}
-                className={`flex flex-col items-center justify-center p-3 rounded-md text-center text-base cursor-pointer transition-all basis-1/4 shrink-0 md:basis-auto md:shrink snap-start ${
-                  isSelected
+                className={`flex flex-col items-center justify-center p-3 rounded-md text-center text-base cursor-pointer transition-all basis-1/4 shrink-0 md:basis-auto md:shrink snap-start ${isSelected
                     ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
                     : "text-slate-300 hover:bg-slate-600/50"
-                }`}
+                  }`}
                 onClick={() => {
                   setSelectedDate(day.date);
                   setExpandedIds(new Set());
@@ -403,7 +491,7 @@ export function EconomicCalendar() {
                   Dự báo
                 </TableHead>
                 <TableHead className="text-slate-400 text-sm font-medium text-center w-20">
-                  Trước đó
+                  Trực tiếp
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -468,21 +556,19 @@ export function EconomicCalendar() {
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{event.title}</span>
                             <ChevronDown
-                              className={`w-3 h-3 transition-transform text-slate-500 ${
-                                expandedIds.has(event.id)
+                              className={`w-3 h-3 transition-transform text-slate-500 ${expandedIds.has(event.id)
                                   ? "rotate-180"
                                   : "rotate-0"
-                              }`}
+                                }`}
                             />
                           </div>
                         </TableCell>
                         <TableCell className="text-center py-4">
                           <span
-                            className={`text-base ${
-                              actualValue !== "--"
+                            className={`text-base ${actualValue !== "--"
                                 ? "text-white font-medium"
                                 : "text-slate-500"
-                            }`}
+                              }`}
                           >
                             {actualValue}
                           </span>
@@ -501,23 +587,21 @@ export function EconomicCalendar() {
                       <TableRow className="border-b border-blue-400/10">
                         <TableCell colSpan={6} className="p-0">
                           <div
-                            className={`overflow-hidden transition-all duration-300 ease-out ${
-                              expandedIds.has(event.id)
+                            className={`overflow-hidden transition-all duration-300 ease-out ${expandedIds.has(event.id)
                                 ? "max-h-[28rem] opacity-100"
                                 : "max-h-0 opacity-0"
-                            }`}
+                              }`}
                           >
                             <div
-                              className={`p-4 bg-slate-700/30 transform transition-transform duration-300 ${
-                                expandedIds.has(event.id)
+                              className={`p-4 bg-slate-700/30 transform transition-transform duration-300 ${expandedIds.has(event.id)
                                   ? "translate-y-0"
                                   : "-translate-y-2"
-                              }`}
+                                }`}
                             >
                               <div className="text-slate-300 text-sm space-y-1 mb-3">
                                 <div>
                                   <span className="text-slate-400">
-                                    Muc do quan trong:
+                                    Mức độ quan trọng:
                                   </span>{" "}
                                   <span className="text-slate-200 font-medium">
                                     {importanceText[event.importance]}
@@ -532,7 +616,7 @@ export function EconomicCalendar() {
                                 {event.currency ? (
                                   <div>
                                     <span className="text-slate-400">
-                                      Đơn vị tiền tệ:
+                                      Đồng tiền tệ:
                                     </span>{" "}
                                     <span className="text-slate-200">
                                       {event.currency}
@@ -574,9 +658,11 @@ export function EconomicCalendar() {
 
         <div className="mt-4 text-sm text-slate-500 text-center">
           Tất cả thời gian theo UTC-7. {totalEvents} sự kiện trong khoảng thời
-          gian dang xem.
+          gian đang xem.
         </div>
       </CardContent>
     </Card>
   );
 }
+
+

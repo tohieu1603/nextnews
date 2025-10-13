@@ -612,6 +612,7 @@ export function NewsDetailPage({
           </div>
         </div>
       </div>
+      {error && <p className="text-red-500 mt-4">Lỗi: {error}</p>}
     </div>
   );
 }
