@@ -1081,7 +1081,7 @@ export default function CashFlow({ data, loading, error }: Props) {
             </h3>
             <div className="flex items-center gap-4">
               <div className="text-left text-slate-200 font-semibold min-w-[120px]">
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                {/* <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <Stack spacing={2}>
                     <Box
                       sx={{
@@ -1108,7 +1108,32 @@ export default function CashFlow({ data, loading, error }: Props) {
                       />
                     </Box>
                   </Stack>
-                </LocalizationProvider>
+                </LocalizationProvider> */}
+                <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-lg blur-sm group-hover:blur-md transition-all duration-300"></div>
+                <div className="relative">
+                  <select
+                    value={year != null ? String(year) : ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setYear(value ? Number(value) : null);
+                      
+                    }}
+                    className="px-3 py-2 bg-slate-700/60 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-400/50 transition-all"
+                    disabled={!yearsDesc.length}
+                  >
+                    {yearsDesc.length ? (
+                      yearsDesc.map((yearOption) => (
+                        <option key={yearOption} value={yearOption}>
+                          {yearOption}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="year">--</option>
+                    )}
+                  </select> 
+                </div>
+              </div>
               </div>
               <div className="flex gap-2">
                 <Badge className="bg-cyan-500/20 text-cyan-400 px-3 py-1">

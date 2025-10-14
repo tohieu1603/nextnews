@@ -247,7 +247,7 @@ export default function FinancialsTab({ data }: FinancialsTabProps) {
                 <span className="hidden sm:inline">Bảng Cân Đối Kế Toán</span>
                 <span className="sm:hidden">Balance Sheet</span>
               </h3>
-              <p className="text-slate-400 text-sm">Comprehensive Balance Sheet Analysis</p>
+              <p className="text-slate-400 text-sm">Phân tích bảng cân đối kế toán toàn diện</p>
             </div>
             <div className="flex gap-3 flex-wrap">
               <Badge className="bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 text-emerald-400 px-4 py-2 border border-emerald-400/30">
@@ -286,7 +286,7 @@ export default function FinancialsTab({ data }: FinancialsTabProps) {
                       </option>
                     ))
                   ) : (
-                    <option value="">Khong co du lieu</option>
+                    <option value="">Không có dữ liệu</option>
                   )}
                 </select>
 

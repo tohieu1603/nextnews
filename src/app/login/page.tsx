@@ -37,6 +37,8 @@ export default function LoginPage() {
       const response = await loginWithEmail(email, password, rememberMe);
       console.log("Login successful:", response);
       // Handle successful login (e.g., store token, redirect)
+
+      
       if (response.token) {
         localStorage.setItem("token", response.token);
         if (rememberMe) {
