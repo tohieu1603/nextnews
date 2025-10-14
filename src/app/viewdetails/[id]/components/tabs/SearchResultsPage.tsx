@@ -216,6 +216,7 @@ export function SearchResultsPage({ searchQuery, onBack, onDetailedAnalysis }: S
     }, 200);
   };
 
+  console.log("Search Results:", searchResults);
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#0E1B36' }}>
       {/* Enhanced Background with organic patterns */}

@@ -775,7 +775,7 @@ export default function SettingsTab({
                 )}
 
                 <div className="mt-4 space-y-4 rounded-lg border border-slate-700/30 bg-slate-800/40 p-4">
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label htmlFor="notify-symbols" className="text-sm text-slate-200">
                       Mã cổ phiếu muốn nhận thông báo
                     </Label>
@@ -793,7 +793,7 @@ export default function SettingsTab({
                         Bạn đang sở hữu: {availableSymbolCodes.join(", ")}
                       </p>
                     )}
-                  </div>
+                  </div> */}
 
                   <div className="flex items-center justify-between rounded-lg bg-slate-900/40 p-3">
                     <div>

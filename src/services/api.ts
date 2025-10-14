@@ -51,7 +51,7 @@ export const getSymbolData = async (symbol: string) => {
 // Lấy dữ liệu theo tên mã
 export const getNameData = async (code: string) => {
   try {
-    const response = await api.get(`/stocks/symbols/by-name/${code}?limit=""`);
+    const response = await api.get(`/stocks/symbols/by-name/${code}`);
     if (!response?.data) {
       return { message: "Đang cập nhật dữ liệu…" };
     }
