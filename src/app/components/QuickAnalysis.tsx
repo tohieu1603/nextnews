@@ -29,7 +29,23 @@ type SymbolByNameData = {
   id: string;
   exchange: string;
   updated_at: string;
+  company?: {
+    name?: string;
+    industry?: string;
+    [key: string]: unknown;
+  };
 };
+// type symbolData = {
+//   symbolData?: {
+//     company?: {
+//       name?: string;
+//       industry?: string;
+//       [key: string]: unknown;
+//     };
+//     [key: string]: unknown;
+//   };
+//   [key: string]: unknown;
+// }
 
 interface CompanyDetailedInfo {
   company?: {
@@ -222,36 +238,7 @@ export function QuickAnalysis() {
               <div className="lg:col-span-2">
                 <TabsContent value="overview">
                   <Card className="bg-gray-800/60 border border-gray-600/30">
-                    <CardContent className="p-4">
-                      {/* Stock Chart */}
-                      {/* <div className="bg-gray-800/40 rounded-lg p-4 mb-4 border border-gray-600/30">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium text-white text-lg">
-                              {selectedData?.name}
-                            </h3>
-                            <Badge
-                              variant="outline"
-                              className="text-xs text-blue-300 border-blue-400/50 bg-blue-400/10"
-                            >
-                              {selectedData.sector}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-400">
-                            <Clock className="w-4 h-4 text-blue-400" />
-                            <span>Cập nhật: 14:32</span>
-                          </div>
-                        </div>
-
-                        <Image
-                          width={1080}
-                          height={720}
-                          src="/temp.jpg"
-                          alt={`Biểu đồ giao dịch ${selectedData.name}`}
-                          className="w-full h-48 object-cover rounded"
-                        />
-                      </div> */}
-
+                    <CardContent className="p-4">                   
                       {/* Simple Text Analysis */}
                       <div className="space-y-4">
                         <h4 className="text-xl font-semibold text-white flex items-center gap-2">
@@ -261,6 +248,7 @@ export function QuickAnalysis() {
                         <div className="p-4 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-lg border border-blue-400/20">
                           <h5 className="text-base font-medium text-slate-400 mb-3">
                             {selectedData?.name} - {selectedData?.exchange}
+                            {data?.[0]?.company?.name}
                           </h5>
                           {loadingDetails ? (
                             <div className="text-center py-4">
@@ -316,129 +304,6 @@ export function QuickAnalysis() {
                             </div>
                           )}
                         </div>
-                        {/* <div className="bg-gray-800/40 rounded-lg border border-gray-600/30 p-4">
-                          <div className="space-y-2 text-base leading-relaxed">
-                            <p className="text-gray-300">
-                              <span className="text-gray-400">RSI (14):</span>
-                              <span
-                                className={`ml-2 font-medium ${selectedData.technical.rsi > 70
-                                  ? "text-red-400"
-                                  : selectedData.technical.rsi < 30
-                                    ? "text-emerald-400"
-                                    : "text-yellow-400"
-                                  }`}
-                              >
-                                {selectedData.technical.rsi}
-                                {selectedData.technical.rsi > 70
-                                  ? " (Quá mua)"
-                                  : selectedData.technical.rsi < 30
-                                    ? " (Quá bán)"
-                                    : " (Trung tính)"}
-                              </span>
-                            </p>
-
-                            <p className="text-slate-300">
-                              <span className="text-slate-400">MACD:</span>
-                              <span
-                                className={`ml-2 font-medium ${selectedData.technical.macd.includes(
-                                  "Bullish"
-                                )
-                                  ? "text-emerald-400"
-                                  : selectedData.technical.macd.includes(
-                                    "Bearish"
-                                  )
-                                    ? "text-red-400"
-                                    : "text-yellow-400"
-                                  }`}
-                              >
-                                {selectedData.technical.macd}
-                              </span>
-                            </p>
-
-                            <p className="text-slate-300">
-                              <span className="text-slate-400">
-                                Đường trung bình 20:
-                              </span>
-                              <span
-                                className={`ml-2 font-medium ${selectedData.technical.ma20 === "Above"
-                                  ? "text-emerald-400"
-                                  : selectedData.technical.ma20 === "Below"
-                                    ? "text-red-400"
-                                    : "text-yellow-400"
-                                  }`}
-                              >
-                                {selectedData.technical.ma20 === "Above"
-                                  ? "Trên MA20"
-                                  : selectedData.technical.ma20 === "Below"
-                                    ? "Dưới MA20"
-                                    : "Tại MA20"}
-                              </span>
-                            </p>
-
-                            <p className="text-slate-300">
-                              <span className="text-slate-400">
-                                Vùng hỗ trợ:
-                              </span>
-                              <span className="ml-2 font-medium text-cyan-400">
-                                {selectedData.technical.support}
-                              </span>
-                              <span className="text-slate-400"> • </span>
-                              <span className="text-slate-400">
-                                Vùng kháng cự:
-                              </span>
-                              <span className="ml-1 font-medium text-orange-400">
-                                {selectedData.technical.resistance}
-                              </span>
-                            </p>
-
-                            <p className="text-slate-300">
-                              <span className="text-slate-400">
-                                Khối lượng giao dịch:
-                              </span>
-                              <span className="ml-2 font-medium text-white">
-                                {selectedData.volume}
-                              </span>
-                              <span className="text-slate-400"> • </span>
-                              <span className="text-slate-400">Giá trị:</span>
-                              <span className="ml-1 font-medium text-white">
-                                {selectedData.value}
-                              </span>
-                            </p>
-
-                            <div className="pt-2 border-t border-slate-600/50">
-                              <p className="text-slate-300">
-                                <span className="text-slate-400">
-                                  Khuyến nghị đầu tư:
-                                </span>
-                                <span
-                                  className={`ml-2 font-medium ${selectedData.recommendation === "STRONG_BUY"
-                                    ? "text-emerald-400"
-                                    : selectedData.recommendation === "BUY"
-                                      ? "text-blue-400"
-                                      : selectedData.recommendation === "SELL"
-                                        ? "text-red-400"
-                                        : "text-yellow-400"
-                                    }`}
-                                >
-                                  {selectedData.recommendation === "STRONG_BUY"
-                                    ? "MUA MẠNH"
-                                    : selectedData.recommendation === "BUY"
-                                      ? "MUA"
-                                      : selectedData.recommendation === "SELL"
-                                        ? "BÁN"
-                                        : "GIỮ"}
-                                </span>
-                                <span className="text-slate-400">
-                                  {" "}
-                                  cho nhóm{" "}
-                                </span>
-                                <span className="font-medium text-cyan-400">
-                                  {selectedData.sector}
-                                </span>
-                              </p>
-                            </div>
-                          </div>
-                        </div> */}
                       </div>
                     </CardContent>
                   </Card>
@@ -457,47 +322,7 @@ export function QuickAnalysis() {
                           <div className="text-slate-400">Đang tải dữ liệu kỹ thuật...</div>
                         </div>
                       ) : stockAnalysis ? (
-                        <div className="space-y-4">
-                          {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="p-4 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-lg border border-blue-400/30">
-                              <div className="text-sm text-slate-400">RSI (14)</div>
-                              <div className={`text-lg font-bold ${
-                                stockAnalysis.technical.rsi > 70 ? "text-red-400" :
-                                stockAnalysis.technical.rsi < 30 ? "text-emerald-400" : "text-yellow-400"
-                              }`}>
-                                {stockAnalysis.technical.rsi}
-                              </div>
-                              <div className="text-xs text-slate-400">
-                                {stockAnalysis.technical.rsi > 70 ? "Quá mua" :
-                                 stockAnalysis.technical.rsi < 30 ? "Quá bán" : "Trung tính"}
-                              </div>
-                            </div>
-
-                            <div className="p-4 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-lg border border-emerald-400/30">
-                              <div className="text-sm text-slate-400">MACD</div>
-                              <div className={`text-lg font-bold ${
-                                stockAnalysis.technical.macd.includes("Bullish") ? "text-emerald-400" :
-                                stockAnalysis.technical.macd.includes("Bearish") ? "text-red-400" : "text-yellow-400"
-                              }`}>
-                                {stockAnalysis.technical.macd}
-                              </div>
-                            </div>
-
-                            <div className="p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-400/30">
-                              <div className="text-sm text-slate-400">Vùng hỗ trợ</div>
-                              <div className="text-lg font-bold text-emerald-400">
-                                {stockAnalysis.technical.support}
-                              </div>
-                            </div>
-
-                            <div className="p-4 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-lg border border-red-400/30">
-                              <div className="text-sm text-slate-400">Vùng kháng cự</div>
-                              <div className="text-lg font-bold text-red-400">
-                                {stockAnalysis.technical.resistance}
-                              </div>
-                            </div>
-                          </div> */}
-
+                        <div className="space-y-4">                         
                           <div className="p-4 bg-gradient-to-r from-slate-700/50 to-slate-600/50 rounded-lg border border-blue-400/20">
                             <div className="grid grid-cols-2 gap-4">
                               <div>
@@ -516,7 +341,6 @@ export function QuickAnalysis() {
                           Không có dữ liệu kỹ thuật
                         </div>
                       )}
-
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Technical Indicators */}
                         {/* <div className="space-y-3">

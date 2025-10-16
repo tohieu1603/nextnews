@@ -291,8 +291,8 @@ export default function WalletTab() {
             </div>
 
             {/* Quick amount buttons */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {[100000, 500000, 1000000].map((amount) => (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[100000, 500000, 1000000, 2000000].map((amount) => (
                 <Button
                   key={amount}
                   variant="outline"

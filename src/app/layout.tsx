@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layouts/Header";
 import { usePathname } from "next/navigation";
+import { Toaster } from "react-hot-toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -579,6 +580,40 @@ export default function RootLayout({
           {!isLoginPage && <Header />}
           <div className="relative z-10">{children}</div>
         </div>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: "#0f172a",
+              color: "#f8fafc",
+              borderRadius: "10px",
+              border: "1px solid #334155",
+              padding: "12px 14px",
+              fontSize: "0.95rem",
+            },
+            success: {
+              iconTheme: {
+                primary: "#22c55e",
+                secondary: "#0f172a",
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: "#ef4444",
+                secondary: "#0f172a",
+              },
+            },
+            loading: {
+              iconTheme: {
+                primary: "#3b82f6",
+                secondary: "#0f172a",
+              },
+            },
+          }}
+        />
+
+
       </body>
     </html>
   );

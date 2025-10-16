@@ -1,4 +1,5 @@
 ﻿import axios from "axios";
+import { toast } from "react-hot-toast";
 import {
   CreateNotificationEndpointPayload,
   EnableAutoRenewRequest,
@@ -11,8 +12,77 @@ const API_URL = `${process.env.NEXT_PUBLIC_API_ORIGIN}/api`;
 console.log("API_URLLLLL", API_URL);
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 30000,
+  timeout: 10000,
 });
+// =====================
+// 🧠 Biến kiểm soát toast
+// =====================
+let lastErrorMessage = "";
+let lastErrorTime = 0;
+let errorCount = 0;
+let hasShownServerError = false;
+
+// =====================
+// 🎯 Interceptor xử lý response
+// =====================
+api.interceptors.response.use(
+  (response) => {
+    // ✅ Nếu response có message success thì hiển thị luôn
+    if (response?.data?.message && response?.status >= 200 && response?.status < 300) {
+      toast.success(response.data.message, {
+        icon: "✅",
+      });
+    }
+    return response;
+  },
+  (error) => {
+    const status = error?.response?.status;
+    const message =
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      "Đã xảy ra lỗi, vui lòng thử lại.";
+
+    // ⛔ Chặn spam lỗi trùng trong vòng 2 giây
+    const now = Date.now();
+    if (message === lastErrorMessage && now - lastErrorTime < 2000) {
+      return Promise.reject(error);
+    }
+
+    lastErrorMessage = message;
+    lastErrorTime = now;
+
+    // 🧩 Xử lý theo status code
+    if (status === 401) {
+      toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+    } else if (status === 403) {
+      toast.error("Bạn không có quyền thực hiện hành động này!");
+    } else if (status === 400) {
+      toast.error("Dữ liệu gửi lên không hợp lệ!");
+    } else if (status === 404) {
+      toast.error("Không tìm thấy dữ liệu!");
+    } else if (status === 500) {
+      // 🔁 Gom lỗi 500 nếu có nhiều API cùng lỗi
+      errorCount++;
+      if (!hasShownServerError) {
+        hasShownServerError = true;
+        setTimeout(() => {
+          toast.error(
+            errorCount > 1
+              ? `${errorCount} API gặp lỗi máy chủ, vui lòng thử lại sau!`
+              : "Lỗi máy chủ, vui lòng thử lại sau!"
+          );
+          errorCount = 0;
+          hasShownServerError = false;
+        }, 1000);
+      }
+    } else {
+      toast.error(`(${status || "??"}) ${message}`);
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export interface EconomicCalendarApiEvent {
   date: string;
@@ -51,7 +121,8 @@ export const getSymbolData = async (symbol: string) => {
 // Lấy dữ liệu theo tên mã
 export const getNameData = async (code: string) => {
   try {
-    const response = await api.get(`/stocks/symbols/by-name/${code}`);
+    const response = await api.get(`/stocks/symbols/by-name/${code}?`);
+    console.log("✅ getNameData response:", response);
     if (!response?.data) {
       return { message: "Đang cập nhật dữ liệu…" };
     }
@@ -61,28 +132,7 @@ export const getNameData = async (code: string) => {
     return { message: "Đang cập nhật dữ liệu…" };
   }
 };
-// export const getSymbolId = async (symbolId : string) => {
-//   try {
-//     const response = await api.get(`/stocks/symbols/${symbolId}`);
 
-//     if (!response?.data) {
-//       return { message: "Đang cập nhật dữ liệu…" };
-//     }
-
-//     return response.data;
-//   } catch (error) {
-//     console.error("getSymbolId error:", error);
-//     return { message: "Đang cập nhật dữ liệu…" };
-//   }
-// };
-// export const getSymbolByName = async (name: string) => {
-//   try {
-//     const response = await api.get(`/stocks/symbols/by-name/${name}`);
-//   } catch (error) {
-//     console.error("getSymbolByName error:", error);
-//     return { message: "Đang cập nhật dữ liệu…" };
-//   }
-// Lấy chi tiết công ty
 export const getCompanyDetails = async (symbolId: number): Promise<Record<string, unknown>> => {
   console.log("🔍 getCompanyDetails called with symbolId:", symbolId);
   const endpoints = [
