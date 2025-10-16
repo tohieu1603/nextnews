@@ -2,6 +2,7 @@ import { UserProfile, WalletInfo, TopUpIntent, TopUpStatus, PaymentHistoryRespon
 import axios from "axios";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { api } from "@/lib/api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_ORIGIN || "http://localhost:8000";
 

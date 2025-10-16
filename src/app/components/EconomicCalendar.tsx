@@ -404,7 +404,7 @@ export function EconomicCalendar() {
 
   const selectedDayLabel = selectedDate
     ? formatLongDayLabel(selectedDate)
-    : "Chua chon ngay";
+    : "Chưa chọn ngày";
 
   return (
     <Card className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 border border-cyan-400/30 backdrop-blur-sm shadow-lg">
@@ -524,10 +524,10 @@ export function EconomicCalendar() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredEvents.map((event) => {
+                filteredEvents.map((event, index) => {
                   const actualValue = formatCellValue(event.actual);
                   return (
-                    <React.Fragment key={event.id}>
+                    <React.Fragment key={`${event.id}-${index}`}>
                       <TableRow
                         className="border-b border-blue-400/10 hover:bg-slate-600/20 transition-colors cursor-pointer"
                         onClick={() => toggleExpand(event.id)}

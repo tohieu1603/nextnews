@@ -33,6 +33,7 @@ import {
   getTimeAgo,
 } from "@/constants/newsData";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
+import { getNameData } from "@/services/api";
 
 // Define SymbolByNameData type (replace fields with actual structure if known)
 type SymbolByNameData = {
@@ -64,23 +65,24 @@ export function NewsDetailPage({
   const [loading, setLoading] = useState<boolean>(false);
 
   const article = articleData[articleId as keyof typeof articleData];
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await apiGetSymbolByNameData(slug);
-        setData(response);
-        console.log("Data fetched:", response);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Unknown error";
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     setLoading(true);
+  //     setError(null);
+  //     try {
+  //       const response = await apiGetSymbolByNameData(slug);
+  //       setData(response);
+  //       console.log("Data fetchedffffffffffffff:", response);
+  //     } catch (err: unknown) {
+  //       const message = err instanceof Error ? err.message : "Unknown error";
+  //       setError(message);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchData();
+  // }, []);
+  
 
   if (!article) {
     return (
@@ -109,7 +111,8 @@ export function NewsDetailPage({
     console.log(`Sharing to ${platform}`);
     setShowShareMenu(false);
   };
-
+  
+  console.log("Rendering article:", data);
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -128,7 +131,7 @@ export function NewsDetailPage({
           <span className="text-blue-600">{article.category}</span>
           <ChevronRight className="w-4 h-4" />
           <span className="text-gray-900 truncate max-w-xs">
-            {article.title.substring(0, 50)}...
+            {data?.[0]?.symbol || data?.[0]?.name || `#${articleId}`}
           </span>
         </nav>
 
@@ -617,19 +620,8 @@ export function NewsDetailPage({
   );
 }
 
-async function apiGetSymbolByNameData(slug: string): Promise<SymbolByNameData[]> {
-  // Replace this mock with your actual API call logic
-  console.log('Fetching data for:', slug);
-  return [
-    {
-      symbol: "YTC",
-      name: "YTC Corp",
-      price: 100.5,
-    },
-    {
-      symbol: "TCB",
-      name: "Techcombank",
-      price: 45.2,
-    },
-  ];
-}
+// async function apiGetSymbolByNameData(slug: string): Promise<SymbolByNameData[]> {
+//   // Replace this mock with your actual API call logic
+//   console.log('Fetching data for:', slug);
+//   return getNameData(slug);
+// }

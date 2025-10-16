@@ -1158,7 +1158,7 @@ export default function CashFlow({ data, loading, error }: Props) {
               <div className={`text-sm ${yoyClass(ocfYoy)} mb-1`}>
                 YoY {fmtYoY(ocfYoy)}
               </div>
-              <div className="text-xs text-slate-300">OCF (tong năm)</div>
+              <div className="text-xs text-slate-300">OCF (trong năm)</div>
             </div>
             <div className="p-5 bg-gradient-to-br from-blue-500/15 to-blue-600/5 rounded-xl border border-blue-400/30">
               <div className="flex items-center justify-between mb-3">
@@ -1172,7 +1172,7 @@ export default function CashFlow({ data, loading, error }: Props) {
                 YoY {fmtYoY(invYoy)}
               </div>
               <div className="text-xs text-slate-300">
-                Investing CF (tong năm)
+                Investing CF (trong năm)
               </div>
             </div>
             <div className="p-5 bg-gradient-to-br from-purple-500/15 to-purple-600/5 rounded-xl border border-purple-400/30">
@@ -1189,7 +1189,7 @@ export default function CashFlow({ data, loading, error }: Props) {
                 YoY {fmtYoY(finYoy)}
               </div>
               <div className="text-xs text-slate-300">
-                Financing CF (tong năm)
+                Financing CF (trong năm)
               </div>
             </div>
             <div className="p-5 bg-gradient-to-br from-cyan-500/15 to-cyan-600/5 rounded-xl border border-cyan-400/30">
