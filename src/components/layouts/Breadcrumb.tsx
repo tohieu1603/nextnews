@@ -18,14 +18,19 @@ function formatSegment(seg: string) {
   return LABEL_MAP[seg] || decodeURIComponent(seg).replace(/[-_]/g, " ");
 }
 
-export default function Breadcrumb() {
+interface BreadcrumbProps {
+  readonly currentLabel?: string;
+}
+
+export default function Breadcrumb({ currentLabel }: BreadcrumbProps) {
   const pathname = usePathname();
   if (!pathname || pathname === "/" || pathname.includes("/login")) return null; // Hide on homepage & login
 
   const segments = pathname.split("/").filter(Boolean);
   const crumbs = segments.map((seg, idx) => {
     const href = "/" + segments.slice(0, idx + 1).join("/");
-    const label = formatSegment(seg);
+    const isLast = idx === segments.length - 1;
+    const label = isLast && currentLabel ? currentLabel : formatSegment(seg);
     return { href, label };
   });
 
