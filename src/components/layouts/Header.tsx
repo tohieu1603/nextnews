@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -25,6 +25,10 @@ import { getCompanyDetails, getNameData } from "@/services/api";
 import { useRouter } from "next/navigation";
 import { searchStockSuggestions, StockSuggestion } from "@/constants/stockSuggestions";
 import { usePathname } from "next/navigation";
+import {
+  useNotificationCenterStore,
+  AppNotificationType,
+} from "@/store/notification-center.store";
 
 type UserProfile = {
 
@@ -125,6 +129,33 @@ const extractProfileRecord = (
   return null;
 };
 
+const notificationAccentClasses: Record<AppNotificationType, string> = {
+  info: "bg-blue-500/20 text-blue-200",
+  success: "bg-emerald-500/20 text-emerald-200",
+  warning: "bg-amber-500/20 text-amber-200",
+  error: "bg-rose-500/20 text-rose-200",
+};
+
+const notificationTypeLabels: Record<AppNotificationType, string> = {
+  info: "Thông tin",
+  success: "Thành công",
+  warning: "Cảnh báo",
+  error: "Lỗi",
+};
+
+const formatNotificationTime = (iso: string) => {
+  try {
+    const date = new Date(iso);
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (error) {
+    console.warn("Failed to format notification time:", error);
+    return "";
+  }
+};
+
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -140,7 +171,21 @@ export function Header() {
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<StockSuggestion[]>([]);
-
+  const notifications = useNotificationCenterStore(
+    (state) => state.notifications
+  );
+  const markAllNotificationsAsRead = useNotificationCenterStore(
+    (state) => state.markAllAsRead
+  );
+  const removeNotification = useNotificationCenterStore(
+    (state) => state.removeNotification
+  );
+  const unreadNotificationCount = notifications.reduce(
+    (count, notification) => (notification.isRead ? count : count + 1),
+    0
+  );
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const notificationRef = useRef<HTMLDivElement | null>(null);
   const { user, wallet, isLoggedIn, logout, fetchWallet } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
@@ -175,6 +220,36 @@ export function Header() {
     });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
+
+  useEffect(() => {
+    if (isNotificationOpen && unreadNotificationCount > 0) {
+      markAllNotificationsAsRead();
+    }
+  }, [
+    isNotificationOpen,
+    unreadNotificationCount,
+    markAllNotificationsAsRead,
+  ]);
+
+  useEffect(() => {
+    if (!isNotificationOpen) {
+      return;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target as Node)
+      ) {
+        setIsNotificationOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isNotificationOpen]);
 
   const navigationItems = [
     {
@@ -492,16 +567,93 @@ export function Header() {
                   </div>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative hover:bg-gray-700/50 text-gray-300 hover:text-white"
-              >
-                <Bell className="w-4 h-4" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-                  3
-                </div>
-              </Button>
+              <div className="relative" ref={notificationRef}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsNotificationOpen((open) => !open)}
+                  className={`relative hover:bg-gray-700/50 text-gray-300 hover:text-white ${
+                    isNotificationOpen ? "bg-gray-700/50 text-white" : ""
+                  }`}
+                  aria-haspopup="true"
+                  aria-expanded={isNotificationOpen}
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadNotificationCount > 0 && (
+                    <div className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 rounded-full text-[10px] text-white font-semibold flex items-center justify-center">
+                      {unreadNotificationCount > 9
+                        ? "9+"
+                        : unreadNotificationCount}
+                    </div>
+                  )}
+                </Button>
+                {isNotificationOpen && (
+                  <div className="absolute right-0 mt-2 w-72 bg-gradient-to-br from-slate-900 to-slate-800 border border-blue-400/20 rounded-xl shadow-2xl py-3 z-50">
+                    <div className="px-4 pb-2 border-b border-blue-400/20">
+                      <div className="text-sm font-semibold text-white">
+                        Thông báo
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        {notifications.length > 0
+                          ? "Các cập nhật mới nhất dành cho bạn."
+                          : "Hiện chưa có thông báo mới."}
+                      </p>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="px-4 py-6 text-center text-sm text-slate-400">
+                          Không có thông báo.
+                        </div>
+                      ) : (
+                        notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`px-4 py-3 border-b border-slate-700/60 last:border-b-0 ${
+                              notification.isRead ? "" : "bg-blue-500/10"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  {notification.title && (
+                                    <div className="text-sm font-medium text-white">
+                                      {notification.title}
+                                    </div>
+                                  )}
+                                  <span
+                                    className={`text-[10px] px-2 py-0.5 rounded-full tracking-wide uppercase ${notificationAccentClasses[notification.type]}`}
+                                  >
+                                    {notificationTypeLabels[notification.type]}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-slate-300 leading-relaxed">
+                                  {notification.message}
+                                </div>
+                                <div className="text-[10px] text-slate-500 uppercase tracking-wide">
+                                  {formatNotificationTime(
+                                    notification.createdAt
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeNotification(notification.id)
+                                }
+                                className="text-xs text-slate-500 hover:text-slate-200 transition-colors"
+                                aria-label="Xóa thông báo"
+                              >
+                                X
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
               {/* Mobile menu button - Enhanced */}
               <Button
                 variant="ghost"

@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useNotificationCenterStore } from "@/store/notification-center.store";
 
 export default function LoginPage() {
   const [user, setUser] = useState<{ email: string } | null>(null);
@@ -29,6 +30,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
+  const addNotification = useNotificationCenterStore((state) => state.addNotification);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +46,11 @@ export default function LoginPage() {
         if (rememberMe) {
           localStorage.setItem("user", JSON.stringify({ email }));
         }
+        addNotification({
+          type: "success",
+          title: "Đăng nhập thành công",
+          message: "Bạn đã đăng nhập thành công.",
+        });
         router.push("/profile");
       }
     } catch (error) {

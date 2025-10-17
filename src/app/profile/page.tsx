@@ -158,27 +158,29 @@ export default function UserProfilePage() {
           }
         });
 
-        const mergedLicenses = licensesData.map((license) => {
-          const matchedSubscription =
-            license.subscription ??
-            (license.subscription_id
-              ? subscriptionsById.get(license.subscription_id) ?? null
-              : null) ??
-            subscriptionsByLicense.get(license.license_id) ??
-            null;
+        const mergedLicenses = Array.isArray(licensesData)
+          ? licensesData.map((license) => {
+            const matchedSubscription =
+              license.subscription ??
+              (license.subscription_id
+                ? subscriptionsById.get(license.subscription_id) ?? null
+                : null) ??
+              subscriptionsByLicense.get(license.license_id) ??
+              null;
 
-          const subscriptionId =
-            license.subscription_id ??
-            matchedSubscription?.subscription_id ??
-            matchedSubscription?.id ??
-            null;
+            const subscriptionId =
+              license.subscription_id ??
+              matchedSubscription?.subscription_id ??
+              matchedSubscription?.id ??
+              null;
 
-          return {
-            ...license,
-            subscription: matchedSubscription,
-            subscription_id: subscriptionId,
-          };
-        });
+            return {
+              ...license,
+              subscription: matchedSubscription,
+              subscription_id: subscriptionId,
+            };
+          })
+          : [];
 
         setPurchasedLicenses(mergedLicenses);
         setSubscriptions(subscriptionsData);
@@ -708,49 +710,49 @@ export default function UserProfilePage() {
 
           {/* Main Content Area */}
           <main className="flex-1 w-full">
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="flex flex-col h-full"
-          >
-            {/* Profile Tab */}
-            <UserProfileTab
-              user={user}
-              editedUser={editedUser}
-              isEditing={isEditing}
-              onEditChange={(value) => setIsEditing(value)}
-              onSave={handleSaveProfile}
-              onCancel={handleCancelEdit}
-              validationErrors={validationErrors}
-              onInputChange={handleInputChange}
-              selectedDate={selectedDate}
-              onDateChange={handleDateChange}
-              disableOutOfRangeDates={disableOutOfRangeDates}
-              onAvatarChange={handleAvatarChange}
-            />
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="flex flex-col h-full"
+            >
+              {/* Profile Tab */}
+              <UserProfileTab
+                user={user}
+                editedUser={editedUser}
+                isEditing={isEditing}
+                onEditChange={(value) => setIsEditing(value)}
+                onSave={handleSaveProfile}
+                onCancel={handleCancelEdit}
+                validationErrors={validationErrors}
+                onInputChange={handleInputChange}
+                selectedDate={selectedDate}
+                onDateChange={handleDateChange}
+                disableOutOfRangeDates={disableOutOfRangeDates}
+                onAvatarChange={handleAvatarChange}
+              />
 
-            {/* Purchased Licenses Tab */}
-            <PurchasedLicensesTab
-              licenses={purchasedLicenses}
-              onToggleAutoRenew={handleToggleAutoRenew}
-              onEnableAutoRenew={handleEnableAutoRenew}
-              loading={licensesLoading}
-            />
+              {/* Purchased Licenses Tab */}
+              <PurchasedLicensesTab
+                licenses={purchasedLicenses}
+                onToggleAutoRenew={handleToggleAutoRenew}
+                onEnableAutoRenew={handleEnableAutoRenew}
+                loading={licensesLoading}
+              />
 
-            {/* Transaction History Tab - now uses auth store directly */}
-            <TransactionHistoryTab />
+              {/* Transaction History Tab - now uses auth store directly */}
+              <TransactionHistoryTab />
 
-            {/* Wallet Tab - now uses auth store directly */}
-            <WalletTab />
+              {/* Wallet Tab - now uses auth store directly */}
+              <WalletTab />
 
-            <SettingsTab
-              tradingBots={tradingBots}
-              walletBalance={walletBalance}
-              setWalletBalance={setWalletBalance}
-              formatCurrency={formatCurrency}
-              purchasedLicenses={purchasedLicenses}
-            />
-          </Tabs>
+              <SettingsTab
+                tradingBots={tradingBots}
+                walletBalance={walletBalance}
+                setWalletBalance={setWalletBalance}
+                formatCurrency={formatCurrency}
+                purchasedLicenses={purchasedLicenses}
+              />
+            </Tabs>
           </main>
         </div>
       </div>

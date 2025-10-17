@@ -221,12 +221,20 @@ export default function DetailedAnalysisPage() {
 
   console.log("Data for ID:", id, data);
 
+  const rawSymbolName = data?.symbolData?.name;
+  const rawCompanyName = data?.symbolData?.company?.company_name;
+  const symbolCode = typeof rawSymbolName === "string" ? rawSymbolName.trim() : "";
+  const companyName = typeof rawCompanyName === "string" ? rawCompanyName.trim() : "";
+  const breadcrumbLabel = symbolCode || companyName
+    ? [symbolCode, companyName].filter(Boolean).join(" - ")
+    : id ?? "";
+
   return (
     <TooltipProvider>
       <div className="min-h-screen mt-24">
         <div className="pt-16 md:pt-32">
           <div className="container mx-auto px-4 py-6 max-w-7xl">
-            <Breadcrumb />
+            <Breadcrumb currentLabel={breadcrumbLabel} />
             <div className="text-center mb-4">
               <h1 className="text-3xl font-bold text-cyan-400">
                 PHÂN TÍCH CHUYÊN SÂU
