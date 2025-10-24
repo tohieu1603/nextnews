@@ -1,4 +1,4 @@
-export interface UserProfile {
+﻿export interface UserProfile {
   id: string;
   email: string;
   fullName: string;
@@ -127,6 +127,44 @@ export interface SymbolOrderStatus {
   created_at: string;
   updated_at: string;
   message: string;
+}
+
+export interface SymbolOrderHistoryItem extends SymbolOrderStatus {
+  description?: string | null;
+  items: Array<
+    SymbolOrderItem & {
+      order_item_id?: string;
+      symbol_name?: string;
+      auto_renew?: boolean;
+      auto_renew_price?: number | null;
+      auto_renew_cycle_days?: number | null;
+      license?: {
+        license_id: string;
+        start_at: string;
+        end_at: string | null;
+        is_lifetime: boolean;
+        is_active: boolean;
+        status?: "active" | "expired" | "cancelled";
+        created_at?: string;
+        updated_at?: string;
+        license_days?: number | null;
+        auto_renew?: boolean;
+        auto_renew_price?: number | null;
+        subscription_id?: string | null;
+      } | null;
+      license_id?: string | null;
+      subscription_id?: string | null;
+      subscription?: AutoRenewSubscription | null;
+    }
+  >;
+}
+
+export interface SymbolOrderHistoryResponse {
+  results: SymbolOrderHistoryItem[];
+  total?: number;
+  page?: number;
+  limit?: number;
+  total_pages?: number;
 }
 
 export interface SepayPaymentIntent {

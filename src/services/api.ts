@@ -4,6 +4,8 @@ import {
   CreateNotificationEndpointPayload,
   EnableAutoRenewRequest,
   NotificationEndpoint,
+  PurchasedLicense,
+  SymbolOrderHistoryItem,
   UpdateNotificationEndpointPayload,
   VerifyNotificationEndpointPayload,
 } from "@/types";
@@ -112,6 +114,203 @@ api.interceptors.response.use(
   }
 );
 
+const toNumber = (value: unknown, fallback = 0): number => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (!Number.isNaN(parsed) && Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return fallback;
+};
+
+const toBoolean = (value: unknown): boolean => {
+  return value === true || value === "true" || value === 1;
+};
+
+const normaliseArrayResponse = <T = unknown>(data: unknown): T[] => {
+  if (!data) return [];
+  if (Array.isArray(data)) return data as T[];
+  if (typeof data === "object" && data !== null) {
+    const record = data as Record<string, unknown>;
+    const results = record.results;
+    if (Array.isArray(results)) {
+      return results as T[];
+    }
+    const innerData = record.data;
+    if (Array.isArray(innerData)) {
+      return innerData as T[];
+    }
+  }
+  return [];
+};
+
+const normaliseExistingLicense = (license: unknown): PurchasedLicense | null => {
+  if (!license || typeof license !== "object") {
+    return null;
+  }
+
+  const source = license as Record<string, unknown>;
+  const licenseId = source.license_id ?? source.id;
+  const symbolId = source.symbol_id;
+
+  if (!licenseId || symbolId === undefined || symbolId === null) {
+    return null;
+  }
+
+  const symbolName =
+    typeof source.symbol_name === "string" && source.symbol_name.length > 0
+      ? source.symbol_name
+      : `Symbol #${symbolId}`;
+
+  const createdAt =
+    (typeof source.created_at === "string" && source.created_at) ||
+    (typeof source.start_at === "string" && source.start_at) ||
+    new Date().toISOString();
+
+  const licenseDaysRaw = source.license_days;
+  let licenseDays: number | null = null;
+  if (typeof licenseDaysRaw === "number" && Number.isFinite(licenseDaysRaw)) {
+    licenseDays = licenseDaysRaw;
+  } else if (typeof licenseDaysRaw === "string" && licenseDaysRaw.trim().length > 0) {
+    const parsed = Number(licenseDaysRaw);
+    licenseDays = Number.isNaN(parsed) ? null : parsed;
+  }
+
+  const subscription =
+    typeof source.subscription === "object" && source.subscription !== null
+      ? (source.subscription as PurchasedLicense["subscription"])
+      : null;
+
+  const subscriptionIdCandidate =
+    (typeof source.subscription_id === "string" && source.subscription_id) ||
+    (subscription && subscription.subscription_id) ||
+    null;
+
+  const statusValue = typeof source.status === "string" ? source.status : undefined;
+  const normalisedStatus: PurchasedLicense["status"] =
+    statusValue && (statusValue === "active" || statusValue === "expired" || statusValue === "cancelled")
+      ? statusValue
+      : toBoolean(source.is_active)
+      ? "active"
+      : "cancelled";
+
+  return {
+    license_id: String(licenseId),
+    symbol_id: Number(symbolId),
+    symbol_name: symbolName,
+    status: normalisedStatus,
+    start_at:
+      typeof source.start_at === "string" ? source.start_at : createdAt,
+    end_at: typeof source.end_at === "string" ? source.end_at : null,
+    is_lifetime: toBoolean(source.is_lifetime),
+    is_active: toBoolean(source.is_active),
+    order_id: typeof source.order_id === "string" ? source.order_id : "",
+    created_at: createdAt,
+    purchase_price: toNumber(
+      source.purchase_price,
+      toNumber(source.order_total_amount, 0)
+    ),
+    license_days: licenseDays,
+    auto_renew: toBoolean(source.auto_renew),
+    auto_renew_price:
+      source.auto_renew_price !== undefined && source.auto_renew_price !== null
+        ? toNumber(source.auto_renew_price)
+        : null,
+    payment_method:
+      source.payment_method === "sepay_transfer" ? "sepay_transfer" : "wallet",
+    order_total_amount: toNumber(
+      source.order_total_amount,
+      toNumber(source.purchase_price, 0)
+    ),
+    subscription,
+    subscription_id:
+      typeof subscriptionIdCandidate === "string" && subscriptionIdCandidate
+        ? subscriptionIdCandidate
+        : null,
+  };
+};
+
+const mapOrdersToLicenses = (orders: SymbolOrderHistoryItem[]): PurchasedLicense[] => {
+  const list: PurchasedLicense[] = [];
+
+  orders.forEach((order) => {
+    const orderStatus = (order.status ?? "").toLowerCase();
+    const isPaid = orderStatus === "paid";
+    const licenseStatus: PurchasedLicense["status"] = isPaid ? "active" : "cancelled";
+    const paymentMethod =
+      order.payment_method === "sepay_transfer" ? "sepay_transfer" : "wallet";
+
+    (order.items ?? []).forEach((item, index) => {
+      const licenseMeta = item.license ?? null;
+      const licenseId =
+        licenseMeta?.license_id ??
+        item.license_id ??
+        `${order.order_id}-${item.symbol_id}-${index}`;
+      const startAt =
+        licenseMeta?.start_at ??
+        order.created_at ??
+        new Date().toISOString();
+      const endAt = licenseMeta?.end_at ?? null;
+      const isLifetime = toBoolean(
+        licenseMeta?.is_lifetime ?? (item.license_days === null)
+      );
+      const isActive =
+        typeof licenseMeta?.is_active === "boolean"
+          ? licenseMeta.is_active
+          : isPaid;
+      const createdAt = licenseMeta?.created_at ?? order.created_at;
+      const purchasePrice = toNumber(item.price, toNumber(order.total_amount, 0));
+      const licenseDays =
+        item.license_days ??
+        licenseMeta?.license_days ??
+        null;
+      const autoRenew =
+        typeof item.auto_renew !== "undefined"
+          ? toBoolean(item.auto_renew)
+          : toBoolean(licenseMeta?.auto_renew);
+      const autoRenewPrice =
+        item.auto_renew_price ??
+        licenseMeta?.auto_renew_price ??
+        null;
+      const subscription = item.subscription ?? null;
+      const subscriptionId =
+        subscription?.subscription_id ??
+        licenseMeta?.subscription_id ??
+        null;
+
+      list.push({
+        license_id: String(licenseId),
+        symbol_id: Number(item.symbol_id),
+        symbol_name: item.symbol_name ?? `Symbol #${item.symbol_id}`,
+        status: (licenseMeta?.status as PurchasedLicense["status"]) ?? licenseStatus,
+        start_at: startAt,
+        end_at: endAt,
+        is_lifetime: isLifetime,
+        is_active: isActive,
+        order_id: order.order_id,
+        created_at: createdAt ?? startAt,
+        purchase_price: purchasePrice,
+        license_days: licenseDays,
+        auto_renew: autoRenew,
+        auto_renew_price:
+          autoRenewPrice !== null && autoRenewPrice !== undefined
+            ? toNumber(autoRenewPrice)
+            : null,
+        payment_method: paymentMethod,
+        order_total_amount: toNumber(order.total_amount, purchasePrice),
+        subscription,
+        subscription_id: subscriptionId,
+      });
+    });
+  });
+
+  return list;
+};
+
 export interface EconomicCalendarApiEvent {
   date: string;
   time: string;
@@ -211,18 +410,53 @@ export const getCompanyDetails = async (symbolId: number): Promise<Record<string
  * @returns Array of PurchasedLicense objects
  */
 export const getPurchasedLicenses = async (token: string) => {
+  const headers = {
+    Authorization: `Bearer ${token}`,
+  };
+
   try {
-    const response = await api.get("/sepay/symbol/licenses", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data;
+    const [licensesResult, ordersResult] = await Promise.allSettled([
+      api.get("/sepay/symbol/licenses", { headers }),
+      api.get("/sepay/symbol/orders/history", {
+        headers,
+        params: { status: "paid", limit: 100 },
+      }),
+    ]);
+
+    const licenseMap = new Map<string, PurchasedLicense>();
+
+    if (licensesResult.status === "fulfilled") {
+      const rawLicenses = normaliseArrayResponse<unknown>(
+        licensesResult.value?.data
+      );
+      rawLicenses.forEach((item) => {
+        const normalised = normaliseExistingLicense(item);
+        if (normalised) {
+          licenseMap.set(normalised.license_id, normalised);
+        }
+      });
+    }
+
+    if (ordersResult.status === "fulfilled") {
+      const rawOrders = normaliseArrayResponse<SymbolOrderHistoryItem>(
+        ordersResult.value?.data
+      );
+      mapOrdersToLicenses(rawOrders).forEach((license) => {
+        if (!licenseMap.has(license.license_id)) {
+          licenseMap.set(license.license_id, license);
+        }
+      });
+    }
+
+    return Array.from(licenseMap.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
   } catch (error) {
     console.error("getPurchasedLicenses error:", error);
     throw error;
   }
 };
+
 
 // === AUTO-RENEW SUBSCRIPTION API ===
 
@@ -541,8 +775,8 @@ export const verifyNotificationEndpoint = async (
  */
 export const getGoogleAuthUrl = async () => {
   try {
-    // const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=http://localhost:3001/auth/google/callback", {
-      const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=https://devnews.togogo.vn/auth/google/callback",{
+    const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=http://localhost:3001/auth/google/callback", {
+      // const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=https://devnews.togogo.vn/auth/google/callback",{
     // const response = await api.get("/auth/google/auth-url?state=",{  
 
     withCredentials: true,

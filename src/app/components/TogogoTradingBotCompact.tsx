@@ -882,13 +882,13 @@ export function TogogoTradingBotCompact({
             </div>
             <div className="rounded-2xl border border-blue-400/20 bg-slate-900/40 p-4 shadow-inner">
               <span className="text-xs uppercase tracking-wide text-slate-400">
-                Ty le thang
+                Tỷ lệ thắng
               </span>
               <div className="mt-2 text-2xl font-bold text-emerald-300">
                 {tradeStats.total > 0 ? `${tradeStats.winRate}%` : "-"}
               </div>
               <div className="mt-3 text-xs text-slate-400">
-                Thang / Thua / Hoa:{" "}
+                Thắng / Thua / Hòa:{" "}
                 <span className="text-slate-200">
                   {tradeStats.wins}/{tradeStats.losses}/{tradeStats.neutral}
                 </span>
@@ -896,7 +896,7 @@ export function TogogoTradingBotCompact({
             </div>
             <div className="rounded-2xl border border-blue-400/20 bg-slate-900/40 p-4 shadow-inner">
               <span className="text-xs uppercase tracking-wide text-slate-400">
-                PnL rong
+                PnL rỗng
               </span>
               <div
                 className={`mt-2 text-2xl font-bold ${tradeStats.pnl >= 0 ? "text-emerald-300" : "text-red-300"
@@ -905,7 +905,7 @@ export function TogogoTradingBotCompact({
                 {tradeStats.total > 0 ? formatNumber(tradeStats.pnl) : "-"}
               </div>
               <div className="mt-3 text-xs text-slate-400">
-                Tong lenh:{" "}
+                Tổng lệnh:{" "}
                 <span className="text-slate-200">{tradeStats.total}</span>
               </div>
             </div>
@@ -915,12 +915,12 @@ export function TogogoTradingBotCompact({
             <div className="mb-2 flex items-center gap-2">
               <Lightbulb className="h-4 w-4 text-cyan-300" />
               <span className="text-sm font-medium text-slate-200">
-                Ghi chu chien luoc
+                Ghi chú chiến lược
               </span>
             </div>
             <p className="text-sm leading-relaxed text-slate-300">
               {currentDecoratedBot?.strategy ??
-                "Thong tin se duoc cap nhat ngay khi bot phat sinh giao dich moi tu he thong."}
+                "Thông tin sẽ được cập nhật ngay khi bot phát sinh giao dịch mới từ hệ thống."}
             </p>
           </div>
 
@@ -932,16 +932,16 @@ export function TogogoTradingBotCompact({
                 </div>
                 <div>
                   <p className="text-lg font-semibold text-white">
-                    Lich su giao dich
+                    Lịch sử giao dịch
                   </p>
                   <p className="text-sm text-slate-400">
-                    Tong cong {tradeStats.total} lenh duoc ghi nhan cho bot nay.
+                    Tổng cộng {tradeStats.total} lệnh được ghi nhận cho bot này.
                   </p>
                 </div>
               </div>
               {combinedTradesToDisplay.length > 0 && (
                 <Badge className="bg-blue-500/20 text-blue-200 border-blue-400/30">
-                  Cap nhat cuoi: {formatDateTime(latestTimestamp ?? undefined)}
+                  Cập nhật cuối: {formatDateTime(latestTimestamp ?? undefined)}
                 </Badge>
               )}
             </div>
@@ -1206,7 +1206,7 @@ export function TogogoTradingBotCompact({
               <div className="flex justify-between">
                 <span className="text-slate-400">Total trades recorded:</span>
                 <span className="font-bold text-white">
-                  {currentBotSummary?.trades?.length ?? 0}
+                  {combinedTrades.length}
                 </span>
               </div>
               <div className="flex justify-between">
