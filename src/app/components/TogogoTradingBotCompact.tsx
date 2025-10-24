@@ -60,20 +60,20 @@ const defaultBotTemplates: TemplateBot[] = [
   {
     id: "momentum",
     name: "Momentum Hunter",
-    description: "San tim co phieu tang manh kem thanh khoan tot.",
+    description: "Săn tìm cổ phiếu tăng mạnh kèm thanh khoản tốt.",
     botTypeDisplay: "Momentum",
     color: "from-emerald-500 to-teal-500",
     icon: <Rocket className="w-6 h-6" />,
     performance: "+18.4%",
     confidence: 89,
-    timeframe: "1-2 tuan",
-    strategy: "Bam theo xu huong khi gia va volume cung tang.",
+    timeframe: "1-2 tuần",
+    strategy: "ám theo xu hướng khi giá và volume cùng tăng.",
     symbolName: "Momentum",
   },
   {
     id: "value",
     name: "Value Seeker",
-    description: "Tap trung co phieu co ban vung, gia ca hop ly.",
+    description: "Tập trung cổ phiếu cơ bản vững, giá cả hợp lý.",
     botTypeDisplay: "Value",
     color: "from-blue-500 to-cyan-500",
     icon: <Target className="w-6 h-6" />,
@@ -108,9 +108,9 @@ const defaultStockOptions: StockOption[] = [
 ];
 
 const categoryLabels: Record<string, string> = {
-  short: "Ngan han",
-  medium: "Trung han",
-  long: "Dai han",
+  short: "Ngắn hạn",
+  medium: "Trung hạn",
+  long: "Dài hạn",
 };
 
 const normalizeBotCategory = (value?: string | null): string => {
@@ -702,7 +702,7 @@ export function TogogoTradingBotCompact({
 
   const categoryButtons =
     categories.length > 0
-      ? [{ key: "all", label: "Tat ca" }, ...categories]
+      ? [{ key: "all", label: "Tất cả" }, ...categories]
       : [];
 
   return (
@@ -784,7 +784,7 @@ export function TogogoTradingBotCompact({
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div className="rounded-xl border border-blue-400/20 bg-slate-900/40 p-3">
                     <span className="text-xs uppercase tracking-wide text-slate-400">
-                      Khung thoi gian
+                      Khung thời gian
                     </span>
                     <div className="mt-1 font-semibold text-cyan-200">
                       {bot.timeframe}
@@ -792,7 +792,7 @@ export function TogogoTradingBotCompact({
                   </div>
                   <div className="rounded-xl border border-blue-400/20 bg-slate-900/40 p-3">
                     <span className="text-xs uppercase tracking-wide text-slate-400">
-                      Hieu suat
+                      Hiệu suất
                     </span>
                     <div className="mt-1 font-semibold text-emerald-300">
                       {bot.performance}
@@ -843,7 +843,7 @@ export function TogogoTradingBotCompact({
                 )}
               </div>
               <p className="text-slate-400 text-sm mt-1">
-                Goi y cho ma <span className="text-cyan-300">{symbolDisplayName}</span>
+                Gợi ý cho mã <span className="text-cyan-300">{symbolDisplayName}</span>
               </p>
             </div>
           </CardTitle>
@@ -853,13 +853,13 @@ export function TogogoTradingBotCompact({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-blue-400/20 bg-slate-900/40 p-4 shadow-inner">
               <span className="text-xs uppercase tracking-wide text-slate-400">
-                Hieu suat tham chieu
+                Hiệu suất tham chiếu
               </span>
               <div className="mt-2 text-2xl font-bold text-emerald-300">
                 {currentDecoratedBot?.performance ?? "-"}
               </div>
               <div className="mt-3 text-xs text-slate-400">
-                Khung thoi gian:{" "}
+                Khung thời gian:{" "}
                 <span className="text-slate-200">
                   {currentDecoratedBot?.timeframe ?? "-"}
                 </span>
@@ -867,7 +867,7 @@ export function TogogoTradingBotCompact({
             </div>
             <div className="rounded-2xl border border-blue-400/20 bg-slate-900/40 p-4 shadow-inner">
               <span className="text-xs uppercase tracking-wide text-slate-400">
-                Do tin cay mo phong
+                Độ tin cậy mô phỏng
               </span>
               <div className="mt-2 flex items-center gap-2 text-2xl font-bold text-cyan-300">
                 {currentDecoratedBot?.confidence ?? 0}%

@@ -383,14 +383,14 @@ export const getAutoRenewAttempts = async (
 type EconomicCalendarResponse =
   | EconomicCalendarApiEvent[]
   | {
-      value?: EconomicCalendarApiEvent[];
-      events?: EconomicCalendarApiEvent[];
-      data?: EconomicCalendarApiEvent[];
-      results?: EconomicCalendarApiEvent[];
-      Count?: number;
-      count?: number;
-      total?: number;
-    };
+    value?: EconomicCalendarApiEvent[];
+    events?: EconomicCalendarApiEvent[];
+    data?: EconomicCalendarApiEvent[];
+    results?: EconomicCalendarApiEvent[];
+    Count?: number;
+    count?: number;
+    total?: number;
+  };
 
 const pickCalendarEvents = (
   payload: EconomicCalendarResponse | undefined
@@ -414,10 +414,10 @@ const pickCalendarEvents = (
     typeof payload.Count === "number"
       ? payload.Count
       : typeof payload.count === "number"
-      ? payload.count
-      : typeof payload.total === "number"
-      ? payload.total
-      : events.length;
+        ? payload.count
+        : typeof payload.total === "number"
+          ? payload.total
+          : events.length;
 
   return { events, total };
 };
@@ -541,8 +541,10 @@ export const verifyNotificationEndpoint = async (
  */
 export const getGoogleAuthUrl = async () => {
   try {
-    const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=http://localhost:3001/auth/google/callback", {
+    // const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=http://localhost:3001/auth/google/callback", {
+      const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=https://devnews.togogo.vn/auth/google/callback",{
     // const response = await api.get("/auth/google/auth-url?state=",{  
+
     withCredentials: true,
     });
     return response.data;
