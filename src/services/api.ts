@@ -1,4 +1,4 @@
-﻿import axios from "axios";
+﻿import axios, { AxiosHeaders } from "axios";
 import { toast } from "react-hot-toast";
 import {
   CreateNotificationEndpointPayload,
@@ -14,17 +14,45 @@ const api = axios.create({
   baseURL: API_URL,
   timeout: 10000,
 });
-// =====================
-// 🧠 Biến kiểm soát toast
-// =====================
+
+let serviceApiAuthToken: string | null = null;
+
+export const setServiceApiAuthToken = (token?: string | null) => {
+  serviceApiAuthToken = token ?? null;
+  if (serviceApiAuthToken) {
+    api.defaults.headers.common.Authorization = `Bearer ${serviceApiAuthToken}`;
+  } else {
+    delete api.defaults.headers.common.Authorization;
+  }
+};
+
+export const getServiceApiAuthToken = () => serviceApiAuthToken;
+
+api.interceptors.request.use(
+  (config) => {
+    if (serviceApiAuthToken) {
+      const headers =
+        config.headers instanceof AxiosHeaders
+          ? config.headers
+          : AxiosHeaders.from(config.headers ?? {});
+
+      if (!headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${serviceApiAuthToken}`);
+      }
+
+      config.headers = headers;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 let lastErrorMessage = "";
 let lastErrorTime = 0;
 let errorCount = 0;
 let hasShownServerError = false;
 
-// =====================
-// 🎯 Interceptor xử lý response
-// =====================
+
 api.interceptors.response.use(
   (response) => {
     // ✅ Nếu response có message success thì hiển thị luôn
@@ -141,6 +169,8 @@ export const getCompanyDetails = async (symbolId: number): Promise<Record<string
     { key: "incomeData", url: `/calculate/incomes/${symbolId}` },
     { key: "cashflowData", url: `/calculate/cashflows/${symbolId}` },
     { key: "ratiosData", url: `/calculate/ratios/${symbolId}` },
+    { key: "bots", url: `/symbols/${symbolId}/bots` },
+
   ];
 
   console.log("🔍 API endpoints:", endpoints.map(e => e.url));
@@ -511,8 +541,9 @@ export const verifyNotificationEndpoint = async (
  */
 export const getGoogleAuthUrl = async () => {
   try {
-    const response = await api.get("/auth/google/auth-url?state=a", {
-      withCredentials: true,
+    const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=http://localhost:3001/auth/google/callback", {
+    // const response = await api.get("/auth/google/auth-url?state=",{  
+    withCredentials: true,
     });
     return response.data;
   } catch (error) {
@@ -545,3 +576,81 @@ export const loginWithEmail = async (
     throw error;
   }
 };
+
+export interface BotTrade {
+  id: string;
+  trans_id: number;
+  trade_type: string;
+  direction: string;
+  price: string;
+  entry_date: string;
+  exit_price: string;
+  stop_loss: string;
+  take_profit: string;
+  position_size: number;
+  profit: number;
+  max_duration: number;
+  win_loss_status: string;
+  action: string;
+  created_at: string;
+}
+
+export interface SymbolBotSummary {
+  id: number;
+  name: string;
+  bot_type: string;
+  bot_type_display: string;
+  symbol_id: number;
+  symbol_name: string;
+  trades?: BotTrade[];
+}
+
+export interface TradingBotSuggestionResponse {
+  symbol_id: number;
+  symbol_name: string;
+  bots: SymbolBotSummary[];
+}
+
+const resolveSymbolParam = (symbol: number | string): string => {
+  if (typeof symbol === "number") {
+    return String(symbol);
+  }
+  const trimmed = symbol.trim();
+  return trimmed.length > 0 ? trimmed : "";
+};
+
+export const getSymbolBots = async (
+  symbol: number | string,
+  token?: string | null
+): Promise<TradingBotSuggestionResponse | { message: string }> => {
+  try {
+    const symbolParam = resolveSymbolParam(symbol);
+    if (!symbolParam) {
+      return { message: "Symbol is required." };
+    }
+
+    const resolvedToken = token ?? getServiceApiAuthToken();
+
+    if (!resolvedToken) {
+      return { message: "Bạn cần đăng nhập để xem bot." };
+    }
+
+    const response = await api.get<TradingBotSuggestionResponse>(
+      `/symbols/${symbolParam}/bots`,
+      {
+        ...withAuth(resolvedToken),
+        withCredentials: true,
+      }
+    );
+
+    if (!response?.data || !Array.isArray(response.data.bots)) {
+      return { message: "Dang cap nhat du lieu." };
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("getSymbolBots error:", error);
+    return { message: "Dang cap nhat du lieu." };
+  }
+};
+

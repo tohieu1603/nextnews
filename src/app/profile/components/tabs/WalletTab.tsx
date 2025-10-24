@@ -43,9 +43,7 @@ export default function WalletTab() {
   >("waiting");
   const [topUpData, setTopUpData] = useState<TopUpIntent | null>(null);
   const [topUpAmount, setTopUpAmount] = useState<number>(500000);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(
-    null
-  );
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
 
   // Format currency helper
   const formatCurrency = (amount: number): string => {
@@ -58,15 +56,6 @@ export default function WalletTab() {
       fetchWallet();
     }
   }, [wallet, fetchWallet]);
-
-  // Cleanup polling on unmount
-  useEffect(() => {
-    return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-      }
-    };
-  }, [pollingInterval]);
 
   // Validation function for top-up amounts
   const validateTopUpAmount = (amount: number): string | null => {
@@ -115,8 +104,8 @@ export default function WalletTab() {
       if (data) {
         setTopUpData(data);
         setShowTopUpDialog(true);
+        setIsCheckingStatus(false);
         setPaymentStatus("waiting");
-        startPollingStatus(data.intent_id);
       } else {
         setValidationErrors((prev) => ({
           ...prev,
@@ -134,37 +123,34 @@ export default function WalletTab() {
     }
   };
 
-  const startPollingStatus = (intentId: string) => {
-    // Clear existing interval if any
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-    }
+  const handleCheckPaymentStatus = async () => {
+    if (!topUpData) return;
 
-    // Poll every 5 seconds
-    const interval = setInterval(async () => {
-      const status = await checkTopUpStatus(intentId);
-      if (!status) return;
+    setIsCheckingStatus(true);
+    try {
+      const status = await checkTopUpStatus(topUpData.intent_id);
+      if (!status) {
+        return;
+      }
 
       if (status.status === "succeeded") {
         setPaymentStatus("success");
-        clearInterval(interval);
-        setPollingInterval(null);
-        // Refresh wallet balance
         await fetchWallet();
       } else if (status.status === "failed") {
         setPaymentStatus("failed");
-        clearInterval(interval);
-        setPollingInterval(null);
       } else if (status.is_expired) {
         setPaymentStatus("expired");
-        clearInterval(interval);
-        setPollingInterval(null);
-      } else {
+      } else if (status.status === "processing") {
         setPaymentStatus("processing");
+      } else {
+        setPaymentStatus("waiting");
       }
-    }, 5000);
-
-    setPollingInterval(interval);
+    } catch (error) {
+      console.error("Error checking top-up status:", error);
+      setPaymentStatus("failed");
+    } finally {
+      setIsCheckingStatus(false);
+    }
   };
 
   const handleCopyText = (text: string) => {
@@ -172,10 +158,7 @@ export default function WalletTab() {
   };
 
   const handleCloseDialog = () => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-      setPollingInterval(null);
-    }
+    setIsCheckingStatus(false);
     setShowTopUpDialog(false);
     setPaymentStatus("waiting");
     setTopUpData(null);
@@ -457,9 +440,25 @@ export default function WalletTab() {
                     <span className="font-semibold">
                       Đang chờ thanh toán...
                     </span>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-slate-400 text-center">
                       Vui lòng quét mã QR hoặc chuyển khoản theo thông tin trên
                     </span>
+                    <Button
+                      type="button"
+                      onClick={handleCheckPaymentStatus}
+                      disabled={isCheckingStatus || !topUpData}
+                      variant="outline"
+                      className="mt-2 border-amber-400/40 text-amber-300 hover:bg-amber-400/10 text-xs sm:text-sm"
+                    >
+                      {isCheckingStatus ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Đang kiểm tra...
+                        </>
+                      ) : (
+                        'Kiểm tra giao dịch'
+                      )}
+                    </Button>
                   </div>
                 )}
                 {paymentStatus === "processing" && (

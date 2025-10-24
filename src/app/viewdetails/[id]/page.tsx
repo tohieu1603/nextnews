@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { Search, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getStockAnalysis } from "@/components/helpers/detailedAnalysisHelpers";
 import TabsDetail from "./components/Tabs";
 import Breadcrumb from "@/components/layouts/Breadcrumb";
 import { getCompanyDetails, getSymbolData } from "@/services/api";
+import { TogogoTradingBotCompact, type DecoratedBot } from "@/app/components/TogogoTradingBotCompact";
 import { CompanyDetails } from "../types";
 import { useSymbolStore } from "@/store/symbol.store";
 
@@ -55,15 +54,6 @@ interface Stock {
   [key: string]: unknown;
 }
 
-interface SymbolListItem {
-  id: number;
-  name: string;
-  company?: {
-    company_name?: string;
-  };
-  [key: string]: unknown;
-}
-
 interface QuarterData {
   year: number;
   quarter: number;
@@ -76,36 +66,29 @@ interface QuarterData {
 
 export default function DetailedAnalysisPage() {
   const { id } = useParams<{ id: string }>();
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [showSearchSuggestions, setShowSearchSuggestions] = useState<boolean>(false);
   const [detailedInfo, setDetailedInfo] = useState<CompanyDetails | null>(null);
 
-  const { symbolMap, setSymbolMap } = useSymbolStore();
+  const { setSymbolMap } = useSymbolStore();
   const [data, setData] = useState<CompanyDetails | null>(null);
   const [stock, setStock] = useState<Stock | null>(null);
+  const [activeBotName, setActiveBotName] = useState<string>("");
+  const [activeBotCategory, setActiveBotCategory] = useState<string>("");
   const isPositive = stock?.change?.trim().startsWith("+") ?? false;
   const [latestRatios, setLatestRatios] = useState<QuarterData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [symbolList, setSymbolList] = useState<SymbolListItem[]>([]);
 
   useEffect(() => {
     const load = async () => {
-      console.log("🔄 Loading symbol map for ID-based page - id:", id);
-
-      if (!symbolMap || Object.keys(symbolMap).length === 0) {
-        console.log("📋 Fetching symbol list...");
+      try {
         const list = await getSymbolData("");
-        console.log("📋 Symbol list received:", list);
-        setSymbolMap(list);
-        setSymbolList(list as SymbolListItem[]);
-      } else {
-        // Re-fetch the full list since symbolMap only contains name->id mapping
-        const list = await getSymbolData("");
-        setSymbolList(list as SymbolListItem[]);
+        if (Array.isArray(list)) {
+          setSymbolMap(list);
+        }
+      } catch (error) {
+        console.error("Failed to fetch symbol list:", error);
       }
     };
     load();
-  }, [id, symbolMap, setSymbolMap]);
+  }, [setSymbolMap]);
 
   useEffect(() => {
     console.log("🔍 useEffect triggered - id:", id);
@@ -118,7 +101,6 @@ export default function DetailedAnalysisPage() {
 
       console.log("📞 Calling getCompanyDetails with id:", id);
       try {
-        setLoading(true);
         const details = await getCompanyDetails(Number(id));
         console.log("📦 Received details:", details);
         setDetailedInfo(details);
@@ -184,24 +166,10 @@ export default function DetailedAnalysisPage() {
         setDetailedInfo(null);
         setData(null);
       } finally {
-        setLoading(false);
       }
     }
     fetchCompanyDetails();
   }, [id]);
-
-  const filteredSuggestions = symbolList
-    .filter((symbol: SymbolListItem) =>
-      symbol.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      symbol.company?.company_name?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .slice(0, 5);
-
-  const handleStockSelect = (stockId: number) => {
-    setSearchQuery("");
-    setShowSearchSuggestions(false);
-    window.location.href = `/viewdetails/${stockId}`;
-  };
 
   function getLatestQuarter(data: unknown): QuarterData | null {
     if (!data || !Array.isArray(data) || data.length === 0) {
@@ -228,6 +196,25 @@ export default function DetailedAnalysisPage() {
   const breadcrumbLabel = symbolCode || companyName
     ? [symbolCode, companyName].filter(Boolean).join(" - ")
     : id ?? "";
+  const normalizedSymbolCode = symbolCode ? symbolCode.toUpperCase() : "";
+  const tradingSymbolCode =
+    normalizedSymbolCode ||
+    (stock?.symbol ? stock.symbol.toUpperCase() : "") ||
+    (stock?.code ? stock.code.toUpperCase() : "");
+
+  const botSummaryLine = activeBotName
+    ? `Bot hien tai: ${activeBotName}${activeBotCategory ? ` (${activeBotCategory})` : ""}.`
+    : "Chua co bot nao duoc kich hoat cho ma nay.";
+  const numericSymbolId = useMemo(() => {
+    if (data?.symbolData && typeof data.symbolData.id === "number") {
+      return data.symbolData.id;
+    }
+    if (data?.symbolData && typeof (data.symbolData as { symbol_id?: number }).symbol_id === "number") {
+      return (data.symbolData as { symbol_id: number }).symbol_id;
+    }
+    const parsed = Number(id);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [data, id]);
 
   return (
     <TooltipProvider>
@@ -289,48 +276,30 @@ export default function DetailedAnalysisPage() {
               </CardContent>
             </Card>
 
-            <div className="relative max-w-xl mx-auto mb-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input
-                  type="text"
-                  placeholder="Tìm kiếm cổ phiếu..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => setShowSearchSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 200)}
-                  className="pl-10 bg-slate-800/60 border-blue-400/30 text-white placeholder-slate-400 focus:border-cyan-400 transition-colors"
+            {(tradingSymbolCode || numericSymbolId !== null) && (
+              <div className="mt-10">
+                <h2 className="text-2xl font-semibold text-white mb-2">
+                  Gợi ý Trading Bot
+                </h2>
+                <p className="text-sm text-slate-400 mb-4 space-y-1">
+                  <span>
+                    Theo dõi khung thời gian giao dịch và lịch sử tín hiệu dành riêng cho mã {tradingSymbolCode || id}.
+                  </span>
+                  <span className="block text-amber-300 font-medium">
+                    {botSummaryLine} 
+                  </span>
+                </p>
+                <TogogoTradingBotCompact
+                  initialSymbolCode={tradingSymbolCode || undefined}
+                  initialSymbolId={numericSymbolId ?? undefined}
+                  hideSymbolPicker
+                  onBotSelected={(bot: DecoratedBot | null) => {
+                    setActiveBotName(bot?.name ?? "");
+                    setActiveBotCategory(bot?.botTypeDisplay ?? "");
+                  }}
                 />
               </div>
-              {showSearchSuggestions &&
-                searchQuery &&
-                filteredSuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 bg-slate-800/95 border border-blue-400/30 rounded-lg shadow-xl z-10 mt-1 overflow-hidden">
-                    {filteredSuggestions.map((stockItem: SymbolListItem) => {
-                      return (
-                        <button
-                          key={stockItem.id}
-                          onClick={() => handleStockSelect(stockItem.id)}
-                          className="w-full p-3 text-left hover:bg-blue-500/10 border-b border-slate-600/50 last:border-b-0 transition-all duration-200"
-                          type="button"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-semibold text-cyan-400 text-sm">
-                                {stockItem.name}
-                              </div>
-                              <div className="text-xs text-slate-400">
-                                {stockItem.company?.company_name || 'N/A'}
-                              </div>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-slate-400" />
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-            </div>
+            )}
             <TabsDetail
               stock={stock}
               data={detailedInfo || {}}
