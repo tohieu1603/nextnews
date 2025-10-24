@@ -1,10 +1,34 @@
-import { UserProfile, WalletInfo, TopUpIntent, TopUpStatus, PaymentHistoryResponse, SymbolOrderResponse, SepayPaymentIntent, SymbolAccessCheckResponse } from "@/types";
+import {
+  UserProfile,
+  WalletInfo,
+  TopUpIntent,
+  TopUpStatus,
+  PaymentHistoryResponse,
+  SymbolOrderResponse,
+  SepayPaymentIntent,
+  SymbolAccessCheckResponse,
+} from "@/types";
 import axios from "axios";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { api } from "@/lib/api";
+import { api, setCoreApiAuthToken } from "@/lib/api";
+import { setServiceApiAuthToken } from "@/services/api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_ORIGIN || "http://localhost:8000";
+
+const applyAxiosAuthHeader = (token: string | null) => {
+  if (token) {
+    axios.defaults.headers.common.Authorization = `Bearer ${token}`;
+  } else {
+    delete axios.defaults.headers.common.Authorization;
+  }
+};
+
+const syncAuthTokens = (token: string | null) => {
+  applyAxiosAuthHeader(token);
+  setCoreApiAuthToken(token);
+  setServiceApiAuthToken(token);
+};
 
 interface PaymentIntentStatus {
   intent_id: string;
@@ -103,7 +127,7 @@ export const useAuthStore = create<AuthState>()(
 
           if (!access || !user) return false;
 
-          axios.defaults.headers.common.Authorization = `Bearer ${access}`;
+          syncAuthTokens(access);
 
           set({
             access_token: access,
@@ -127,7 +151,7 @@ export const useAuthStore = create<AuthState>()(
           wallet: null,
           isLoggedIn: false,
         });
-        delete axios.defaults.headers.common.Authorization;
+        syncAuthTokens(null);
       },
 
       updateProfile: (updates: Partial<UserProfile>) => {
@@ -430,6 +454,14 @@ export const useAuthStore = create<AuthState>()(
         wallet: state.wallet,
         isLoggedIn: state.isLoggedIn,
       }),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error("Failed to rehydrate auth store:", error);
+          return;
+        }
+        const token = state?.access_token ?? null;
+        syncAuthTokens(token ?? null);
+      },
     }
   )
 );
