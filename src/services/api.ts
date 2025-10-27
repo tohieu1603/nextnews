@@ -775,8 +775,8 @@ export const verifyNotificationEndpoint = async (
  */
 export const getGoogleAuthUrl = async () => {
   try {
-    const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=http://localhost:3001/auth/google/callback", {
-    // const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=https://devnews.togogo.vn/auth/google/callback",{
+    // const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=http://localhost:3001/auth/google/callback", {
+    const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=https://devnews.togogo.vn/auth/google/callback",{
     // const response = await api.get("/auth/google/auth-url?state=",{  
 
     withCredentials: true,
