@@ -83,34 +83,34 @@ export default function TabsDetail({
   };
 
   return (
-    <Tabs defaultValue="overview" className="space-y-4">
-      <TabsList className="grid w-full grid-cols-4 bg-slate-800/60 border border-blue-400/30 p-1">
+    <Tabs defaultValue="overview" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-slate-900/80 via-slate-900/60 to-slate-900/80 p-1 shadow-lg shadow-cyan-500/15 backdrop-blur-md">
         <TabsTrigger
           value="overview"
-          className="data-[state=active]:bg-blue-500/20 text-white data-[state=active]:text-cyan-400 text-sm font-bold py-2"
+          className="group relative flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold uppercase tracking-wide text-slate-300 transition-all duration-200 hover:bg-slate-800/50 hover:text-cyan-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/30 data-[state=active]:to-blue-500/30 data-[state=active]:text-white data-[state=active]:shadow-inner data-[state=active]:shadow-cyan-500/30"
         >
-          <BarChart className="w-4 h-4 mr-1" />
+          <BarChart className="w-4 h-4 mr-1 transition-colors duration-200 group-data-[state=active]:text-white" />
           Tổng quan
         </TabsTrigger>
         <TabsTrigger
           value="financials"
-          className="data-[state=active]:bg-blue-500/20 text-white data-[state=active]:text-cyan-400 text-sm font-bold py-2"
+          className="group relative flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold uppercase tracking-wide text-slate-300 transition-all duration-200 hover:bg-slate-800/50 hover:text-cyan-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/30 data-[state=active]:to-blue-500/30 data-[state=active]:text-white data-[state=active]:shadow-inner data-[state=active]:shadow-cyan-500/30"
         >
-          <DollarSign className="w-4 h-4 mr-1" />
+          <DollarSign className="w-4 h-4 mr-1 transition-colors duration-200 group-data-[state=active]:text-white" />
           Tài chính
         </TabsTrigger>
         <TabsTrigger
           value="governance"
-          className="data-[state=active]:bg-blue-500/20 text-white data-[state=active]:text-cyan-400 text-sm font-bold py-2"
+          className="group relative flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold uppercase tracking-wide text-slate-300 transition-all duration-200 hover:bg-slate-800/50 hover:text-cyan-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/30 data-[state=active]:to-blue-500/30 data-[state=active]:text-white data-[state=active]:shadow-inner data-[state=active]:shadow-cyan-500/30"
         >
-          <Users className="w-4 h-4 mr-1" />
+          <Users className="w-4 h-4 mr-1 transition-colors duration-200 group-data-[state=active]:text-white" />
           Quản trị
         </TabsTrigger>
         <TabsTrigger
           value="analysis"
-          className="data-[state=active]:bg-blue-500/20 text-white data-[state=active]:text-cyan-400 text-sm font-bold py-2"
+          className="group relative flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold uppercase tracking-wide text-slate-300 transition-all duration-200 hover:bg-slate-800/50 hover:text-cyan-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/30 data-[state=active]:to-blue-500/30 data-[state=active]:text-white data-[state=active]:shadow-inner data-[state=active]:shadow-cyan-500/30"
         >
-          <TrendingUpIcon className="w-4 h-4 mr-1" />
+          <TrendingUpIcon className="w-4 h-4 mr-1 transition-colors duration-200 group-data-[state=active]:text-white" />
           Phân tích
         </TabsTrigger>
       </TabsList>

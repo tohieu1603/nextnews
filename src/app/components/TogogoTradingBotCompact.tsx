@@ -67,7 +67,7 @@ const defaultBotTemplates: TemplateBot[] = [
     performance: "+18.4%",
     confidence: 89,
     timeframe: "1-2 tuần",
-    strategy: "ám theo xu hướng khi giá và volume cùng tăng.",
+    strategy: "Ám theo xu hướng khi giá và volume cùng tăng.",
     symbolName: "Momentum",
   },
   {
@@ -79,21 +79,21 @@ const defaultBotTemplates: TemplateBot[] = [
     icon: <Target className="w-6 h-6" />,
     performance: "+12.7%",
     confidence: 85,
-    timeframe: "2-3 thang",
+    timeframe: "2-3 tháng",
     strategy: "Pick fundamentally solid businesses with attractive ratios.",
     symbolName: "Value",
   },
   {
     id: "breakout",
     name: "Breakout Trader",
-    description: "Theo doi cac diem bung no ky thuat quan trong.",
+    description: "Theo dõi các điểm bùng nổ kỹ thuật quan trọng.",
     botTypeDisplay: "Breakout",
     color: "from-orange-500 to-red-500",
     icon: <TrendingUp className="w-6 h-6" />,
     performance: "+22.1%",
     confidence: 87,
-    timeframe: "1-4 tuan",
-    strategy: "Vao lenh khi gia vuot khoi vung khang cu.",
+    timeframe: "1-4 tuần",
+    strategy: "Vào lệnh khi giá vượt khỏi vùng kháng cự.",
     symbolName: "Breakout",
   },
 ];
@@ -213,6 +213,85 @@ const parseNumericValue = (value: unknown): number | null => {
     return Number.isNaN(numeric) ? null : numeric;
   }
   return null;
+};
+
+const formatNumericField = (value: unknown): string => {
+  const numeric = parseNumericValue(value);
+  if (numeric === null) {
+    return "-";
+  }
+  return formatNumber(numeric);
+};
+
+const getTradeTypeDisplay = (
+  value?: string | null
+): { label: string; dotClassName: string; textClassName: string } => {
+  const raw =
+    typeof value === "string"
+      ? value.trim()
+      : typeof value === "number"
+      ? String(value)
+      : "";
+  if (raw.length === 0) {
+    return {
+      label: "-",
+      dotClassName: "bg-slate-500/50",
+      textClassName: "text-slate-300",
+    };
+  }
+  const normalized = raw.toUpperCase();
+  if (normalized === "BUY") {
+    return {
+      label: "BUY",
+      dotClassName: "bg-emerald-400",
+      textClassName: "text-emerald-300",
+    };
+  }
+  if (normalized === "SELL") {
+    return {
+      label: "SELL",
+      dotClassName: "bg-rose-500",
+      textClassName: "text-rose-300",
+    };
+  }
+  return {
+    label: normalized,
+    dotClassName: "bg-blue-400/60",
+    textClassName: "text-sky-300",
+  };
+};
+
+const getWinLossDisplay = (
+  value?: string | null
+): { label: string; badgeClassName: string } => {
+  const normalized =
+    typeof value === "string" ? value.trim().toUpperCase() : "";
+  if (normalized === "WIN") {
+    return {
+      label: "WIN",
+      badgeClassName:
+        "border border-emerald-400/50 bg-emerald-500/10 text-emerald-300",
+    };
+  }
+  if (normalized === "LOSS") {
+    return {
+      label: "LOSS",
+      badgeClassName:
+        "border border-rose-500/60 bg-rose-500/10 text-rose-300",
+    };
+  }
+  if (normalized === "NEUTRAL") {
+    return {
+      label: "NEUTRAL",
+      badgeClassName:
+        "border border-amber-400/40 bg-amber-500/10 text-amber-300",
+    };
+  }
+  return {
+    label: normalized.length > 0 ? normalized : "-",
+    badgeClassName:
+      "border border-slate-600/60 bg-slate-800/40 text-slate-300",
+  };
 };
 
 type BotTrade = NonNullable<SymbolBotSummary["trades"]>[number];
@@ -952,17 +1031,21 @@ export function TogogoTradingBotCompact({
               <div className="hidden rounded-2xl border border-blue-400/20 bg-slate-900/40 md:block">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-blue-400/20 text-sm">
-                    <thead className="text-xs uppercase tracking-wide text-slate-400">
+                    <thead className="bg-slate-800/60 text-[11px] uppercase tracking-[0.18em] text-slate-200">
                       <tr>
-                        <th className="px-4 py-3 text-left font-semibold">Trans ID</th>
-                        <th className="px-4 py-3 text-left font-semibold">Action</th>
-                        <th className="px-4 py-3 text-left font-semibold">Direction</th>
-                        <th className="px-4 py-3 text-right font-semibold">Entry price</th>
-                        <th className="px-4 py-3 text-right font-semibold">Exit price</th>
-                        <th className="px-4 py-3 text-right font-semibold">PnL</th>
-                        <th className="px-4 py-3 text-left font-semibold">Status</th>
-                        <th className="px-4 py-3 text-left font-semibold">Timestamp</th>
-                        <th className="px-4 py-3 text-left font-semibold">Duration</th>
+                        <th className="px-4 py-3 text-left text-xs font-extrabold text-cyan-200">Trade type</th>
+                        <th className="px-4 py-3 text-left text-xs font-extrabold text-cyan-200">Direction</th>
+                        <th className="px-4 py-3 text-right text-xs font-extrabold text-cyan-200">Price</th>
+                        <th className="px-4 py-3 text-left text-xs font-extrabold text-cyan-200">Entry date</th>
+                        <th className="px-4 py-3 text-right text-xs font-extrabold text-cyan-200">Exit price</th>
+                        <th className="px-4 py-3 text-right text-xs font-extrabold text-cyan-200">Stop loss</th>
+                        <th className="px-4 py-3 text-right text-xs font-extrabold text-cyan-200">Take profit</th>
+                        <th className="px-4 py-3 text-right text-xs font-extrabold text-cyan-200">Position size</th>
+                        <th className="px-4 py-3 text-right text-xs font-extrabold text-cyan-200">Profit</th>
+                        <th className="px-4 py-3 text-left text-xs font-extrabold text-cyan-200">Max duration</th>
+                        <th className="px-4 py-3 text-left text-xs font-extrabold text-cyan-200">Win/Loss</th>
+                        <th className="px-4 py-3 text-left text-xs font-extrabold text-cyan-200">Action</th>
+                        <th className="px-4 py-3 text-left text-xs font-extrabold text-cyan-200">Created at</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-blue-400/10 text-slate-200">
@@ -970,27 +1053,40 @@ export function TogogoTradingBotCompact({
                         const baseTrade = row.trade;
                         const counterpart = row.pairedTrade;
                         const isExit = row.leg === "exit";
+                        const numericCellClassName =
+                          "px-4 py-3 text-right font-mono text-sm tracking-tight text-slate-100";
 
-                        const actionLabel = baseTrade.action ?? baseTrade.trade_type ?? row.leg.toUpperCase();
-                        const directionLabel = baseTrade.direction ?? "-";
-                        const statusLabel = baseTrade.win_loss_status ?? counterpart?.win_loss_status ?? "-";
-
-                        const entryPriceValue = isExit
-                          ? counterpart?.price ?? counterpart?.exit_price ?? baseTrade.price ?? null
-                          : baseTrade.price ?? null;
-                        const exitPriceValue = isExit
-                          ? baseTrade.price ?? baseTrade.exit_price ?? null
-                          : baseTrade.exit_price ?? null;
-                        const formattedEntryPrice =
-                          entryPriceValue !== null && entryPriceValue !== undefined
-                            ? formatNumber(entryPriceValue)
-                            : "-";
-                        const formattedExitPrice =
-                          exitPriceValue !== null && exitPriceValue !== undefined && exitPriceValue !== "0.00"
-                            ? formatNumber(exitPriceValue)
-                            : "-";
-
-                        const profitValue = isExit ? parseNumericValue(baseTrade.profit) : null;
+                        const tradeTypeLabel =
+                          baseTrade.trade_type ?? counterpart?.trade_type ?? "-";
+                        const tradeTypeDisplay = getTradeTypeDisplay(tradeTypeLabel);
+                        const directionLabel =
+                          baseTrade.direction ?? counterpart?.direction ?? "-";
+                        const priceLabel = formatNumericField(
+                          baseTrade.price ?? counterpart?.price
+                        );
+                        const entryDateLabel = formatDateTime(
+                          baseTrade.entry_date ??
+                            (isExit ? counterpart?.entry_date : undefined) ??
+                            baseTrade.created_at ??
+                            counterpart?.created_at ??
+                            undefined
+                        );
+                        const exitPriceLabel = formatNumericField(
+                          baseTrade.exit_price ?? counterpart?.exit_price
+                        );
+                        const stopLossLabel = formatNumericField(
+                          baseTrade.stop_loss ?? counterpart?.stop_loss
+                        );
+                        const takeProfitLabel = formatNumericField(
+                          baseTrade.take_profit ?? counterpart?.take_profit
+                        );
+                        const positionSizeLabel = formatNumericField(
+                          baseTrade.position_size ?? counterpart?.position_size
+                        );
+                        const rawProfit = isExit
+                          ? baseTrade.profit
+                          : counterpart?.profit ?? baseTrade.profit;
+                        const profitValue = parseNumericValue(rawProfit);
                         const profitClass =
                           profitValue === null
                             ? ""
@@ -1000,39 +1096,75 @@ export function TogogoTradingBotCompact({
                             ? "text-emerald-300"
                             : "";
                         const profitCellClassName = [
-                          "px-4 py-3 text-right font-mono font-semibold",
-                          profitClass,
+                          "px-4 py-3 text-right font-mono text-sm font-semibold",
+                          profitClass || "text-slate-100",
                         ]
                           .filter(Boolean)
                           .join(" ");
-                        const formattedProfit =
+                        const profitLabel =
                           profitValue === null ? "-" : formatNumber(profitValue);
-
-                        const timestamp =
-                          isExit
-                            ? baseTrade.entry_date ?? baseTrade.created_at ?? counterpart?.entry_date ?? counterpart?.created_at ?? undefined
-                            : baseTrade.entry_date ?? baseTrade.created_at ?? undefined;
-                        const durationValue =
-                          baseTrade.max_duration ?? counterpart?.max_duration ?? null;
+                        const maxDurationLabel =
+                          baseTrade.max_duration !== null &&
+                          baseTrade.max_duration !== undefined
+                            ? formatDurationHours(baseTrade.max_duration)
+                            : counterpart?.max_duration !== null &&
+                              counterpart?.max_duration !== undefined
+                            ? formatDurationHours(counterpart.max_duration)
+                            : "-";
+                        const winLossLabel =
+                          baseTrade.win_loss_status ??
+                          counterpart?.win_loss_status ??
+                          "-";
+                        const winLossDisplay = getWinLossDisplay(winLossLabel);
+                        const actionLabel =
+                          baseTrade.action ??
+                          baseTrade.trade_type ??
+                          row.leg.toUpperCase();
+                        const createdAtLabel = formatDateTime(
+                          baseTrade.created_at ?? undefined
+                        );
 
                         return (
                           <tr key={`${row.transId}-${row.leg}`} className="hover:bg-slate-800/60">
-                            <td className="px-4 py-3 text-slate-300">{row.transId}</td>
-                            <td className="px-4 py-3 text-slate-300">{actionLabel}</td>
-                            <td className="px-4 py-3 text-slate-300">{directionLabel}</td>
-                            <td className="px-4 py-3 text-right font-mono text-slate-200">
-                              {formattedEntryPrice}
-                            </td>
-                            <td className="px-4 py-3 text-right font-mono text-slate-200">
-                              {formattedExitPrice}
-                            </td>
-                            <td className={profitCellClassName}>{formattedProfit}</td>
-                            <td className="px-4 py-3 text-slate-300">{statusLabel}</td>
                             <td className="px-4 py-3 text-slate-300">
-                              {formatDateTime(timestamp)}
+                              <span className="inline-flex items-center gap-2">
+                                <span
+                                  className={`h-2.5 w-2.5 rounded-full ${tradeTypeDisplay.dotClassName}`}
+                                />
+                                <span
+                                  className={`font-semibold uppercase tracking-[0.25em] ${tradeTypeDisplay.textClassName}`}
+                                >
+                                  {tradeTypeDisplay.label}
+                                </span>
+                              </span>
                             </td>
-                            <td className="px-4 py-3 text-slate-300">
-                              {formatDurationHours(durationValue)}
+                            <td className="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-slate-200">
+                              {directionLabel}
+                            </td>
+                            <td className={numericCellClassName}>{priceLabel}</td>
+                            <td className="px-4 py-3 text-sm font-medium text-slate-300 whitespace-nowrap">
+                              {entryDateLabel}
+                            </td>
+                            <td className={numericCellClassName}>{exitPriceLabel}</td>
+                            <td className={numericCellClassName}>{stopLossLabel}</td>
+                            <td className={numericCellClassName}>{takeProfitLabel}</td>
+                            <td className={numericCellClassName}>{positionSizeLabel}</td>
+                            <td className={profitCellClassName}>{profitLabel}</td>
+                            <td className="px-4 py-3 text-sm font-medium text-slate-300">
+                              {maxDurationLabel}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.25em] uppercase ${winLossDisplay.badgeClassName}`}
+                              >
+                                {winLossDisplay.label}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-slate-200">
+                              {actionLabel}
+                            </td>
+                            <td className="px-4 py-3 text-sm font-medium text-slate-300 whitespace-nowrap">
+                              {createdAtLabel}
                             </td>
                           </tr>
                         );
@@ -1048,32 +1180,37 @@ export function TogogoTradingBotCompact({
                   const counterpart = row.pairedTrade;
                   const isExit = row.leg === "exit";
 
-                  const actionLabel = baseTrade.action ?? baseTrade.trade_type ?? row.leg.toUpperCase();
-                  const directionLabel = baseTrade.direction ?? "-";
-                  const statusLabel = baseTrade.win_loss_status ?? counterpart?.win_loss_status ?? "-";
-
-                  const entryTimestamp =
-                    baseTrade.entry_date ?? baseTrade.created_at ?? undefined;
-                  const exitTimestamp = isExit
-                    ? baseTrade.entry_date ?? baseTrade.created_at ?? counterpart?.entry_date ?? counterpart?.created_at ?? undefined
-                    : counterpart?.entry_date ?? counterpart?.created_at ?? undefined;
-
-                  const entryPriceValue = isExit
-                    ? counterpart?.price ?? counterpart?.exit_price ?? baseTrade.price ?? null
-                    : baseTrade.price ?? null;
-                  const exitPriceValue = isExit
-                    ? baseTrade.price ?? baseTrade.exit_price ?? null
-                    : baseTrade.exit_price ?? null;
-                  const formattedEntryPrice =
-                    entryPriceValue !== null && entryPriceValue !== undefined
-                      ? formatNumber(entryPriceValue)
-                      : "-";
-                  const formattedExitPrice =
-                    exitPriceValue !== null && exitPriceValue !== undefined && exitPriceValue !== "0.00"
-                      ? formatNumber(exitPriceValue)
-                      : "-";
-
-                  const profitValue = isExit ? parseNumericValue(baseTrade.profit) : null;
+                  const tradeTypeLabel =
+                    baseTrade.trade_type ?? counterpart?.trade_type ?? "-";
+                  const tradeTypeDisplay = getTradeTypeDisplay(tradeTypeLabel);
+                  const directionLabel =
+                    baseTrade.direction ?? counterpart?.direction ?? "-";
+                  const priceLabel = formatNumericField(
+                    baseTrade.price ?? counterpart?.price
+                  );
+                  const entryDateLabel = formatDateTime(
+                    baseTrade.entry_date ??
+                      (isExit ? counterpart?.entry_date : undefined) ??
+                      baseTrade.created_at ??
+                      counterpart?.created_at ??
+                      undefined
+                  );
+                  const exitPriceLabel = formatNumericField(
+                    baseTrade.exit_price ?? counterpart?.exit_price
+                  );
+                  const stopLossLabel = formatNumericField(
+                    baseTrade.stop_loss ?? counterpart?.stop_loss
+                  );
+                  const takeProfitLabel = formatNumericField(
+                    baseTrade.take_profit ?? counterpart?.take_profit
+                  );
+                  const positionSizeLabel = formatNumericField(
+                    baseTrade.position_size ?? counterpart?.position_size
+                  );
+                  const rawProfit = isExit
+                    ? baseTrade.profit
+                    : counterpart?.profit ?? baseTrade.profit;
+                  const profitValue = parseNumericValue(rawProfit);
                   const profitClass =
                     profitValue === null
                       ? ""
@@ -1085,46 +1222,108 @@ export function TogogoTradingBotCompact({
                   const mobileProfitTextClassName = ["font-semibold", profitClass]
                     .filter(Boolean)
                     .join(" ");
-                  const formattedProfit =
+                  const profitLabel =
                     profitValue === null ? "-" : formatNumber(profitValue);
+                  const maxDurationLabel =
+                    baseTrade.max_duration !== null &&
+                    baseTrade.max_duration !== undefined
+                      ? formatDurationHours(baseTrade.max_duration)
+                      : counterpart?.max_duration !== null &&
+                        counterpart?.max_duration !== undefined
+                      ? formatDurationHours(counterpart.max_duration)
+                      : "-";
+                  const winLossLabel =
+                    baseTrade.win_loss_status ??
+                    counterpart?.win_loss_status ??
+                    "-";
+                  const winLossDisplay = getWinLossDisplay(winLossLabel);
+                  const actionLabel =
+                    baseTrade.action ??
+                    baseTrade.trade_type ??
+                    row.leg.toUpperCase();
+                  const createdAtLabel = formatDateTime(
+                    baseTrade.created_at ?? undefined
+                  );
+                  const directionPillClassName = [
+                    "ml-2 inline-flex items-center rounded-full border border-slate-700/60 bg-slate-800/40 px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.28em]",
+                    directionLabel !== "-" ? "text-slate-200" : "text-slate-500",
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
 
-                  const durationValue =
-                    baseTrade.max_duration ?? counterpart?.max_duration ?? null;
+                  const detailItems = [
+                    { label: "Price", value: priceLabel, isNumeric: true },
+                    { label: "Entry date", value: entryDateLabel },
+                    { label: "Exit price", value: exitPriceLabel, isNumeric: true },
+                    { label: "Stop loss", value: stopLossLabel, isNumeric: true },
+                    { label: "Take profit", value: takeProfitLabel, isNumeric: true },
+                    { label: "Position size", value: positionSizeLabel, isNumeric: true },
+                    {
+                      label: "Profit",
+                      value: profitLabel,
+                      className: mobileProfitTextClassName,
+                      isNumeric: true,
+                    },
+                    { label: "Max duration", value: maxDurationLabel, isNumeric: true },
+                    { label: "Created at", value: createdAtLabel },
+                  ];
 
                   return (
                     <div
                       key={`${row.transId}-${row.leg}`}
-                      className="rounded-xl border border-blue-400/20 bg-slate-900/40 p-4"
+                      className="rounded-xl border border-blue-400/20 bg-slate-900/40 p-4 shadow-sm shadow-slate-900/60"
                     >
-                      <div className="flex items-center justify-between text-xs uppercase text-blue-200">
-                        <span className="font-semibold">{actionLabel}</span>
-                        <span className="text-slate-400">{directionLabel}</span>
+                      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.32em] text-slate-400">
+                        <span className="font-semibold text-slate-200">{actionLabel}</span>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[0.32em] ${winLossDisplay.badgeClassName}`}
+                        >
+                          {winLossDisplay.label}
+                        </span>
                       </div>
-                      <div className="mt-1 text-xs text-slate-400">
-                        Trans ID: <span className="text-slate-200">{row.transId}</span>
+                      <div className="mt-1 text-sm text-slate-300">
+                        Trade type:
+                        <span className="ml-2 inline-flex items-center gap-2">
+                          <span
+                            className={`h-2 w-2 rounded-full ${tradeTypeDisplay.dotClassName}`}
+                          />
+                          <span
+                            className={`font-semibold uppercase tracking-[0.25em] ${tradeTypeDisplay.textClassName}`}
+                          >
+                            {tradeTypeDisplay.label}
+                          </span>
+                        </span>
                       </div>
-                      <div className="mt-1 text-xs text-slate-400">
-                        Status: <span className="text-slate-200">{statusLabel}</span>
+                      <div className="mt-1 text-sm text-slate-300">
+                        Xu hướng giao dịch:
+                        <span className={directionPillClassName}>{directionLabel}</span>
                       </div>
-                      <div className="mt-2 text-xs text-slate-400">
-                        Entry time: <span className="text-slate-200">{formatDateTime(entryTimestamp)}</span>
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        Exit time: <span className="text-slate-200">{formatDateTime(exitTimestamp)}</span>
-                      </div>
-                      <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-400">
-                        <div>
-                          Entry price: <span className="text-slate-200">{formattedEntryPrice}</span>
-                        </div>
-                        <div>
-                          Exit price: <span className="text-slate-200">{formattedExitPrice}</span>
-                        </div>
-                        <div className="col-span-2">
-                          PnL: <span className={mobileProfitTextClassName}>{formattedProfit}</span>
-                        </div>
-                        <div>
-                          Duration: <span className="text-slate-200">{formatDurationHours(durationValue)}</span>
-                        </div>
+                      <div className="mt-3 grid grid-cols-2 gap-3">
+                        {detailItems.map(({ label, value, className, isNumeric }) => {
+                          const valueClassName = [
+                            "mt-1 text-sm font-medium",
+                            isNumeric ? "font-mono" : "",
+                            isNumeric
+                              ? className
+                                ? ""
+                                : "text-slate-100"
+                              : "text-slate-200",
+                            className,
+                          ]
+                            .filter(Boolean)
+                            .join(" ");
+                          return (
+                            <div
+                              key={label}
+                              className="rounded-lg bg-slate-800/50 px-3 py-2 shadow-inner shadow-slate-900/40"
+                            >
+                              <span className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                {label}
+                              </span>
+                              <span className={valueClassName}>{value}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -1133,7 +1332,7 @@ export function TogogoTradingBotCompact({
             </>
           ) : (
             <div className="rounded-2xl border border-blue-400/20 bg-slate-900/40 p-6 text-center text-sm text-slate-300">
-              Bot has not recorded any trades yet. Check back after the next signal.
+              Bot chưa ghi nhận giao dịch nào. Hãy kiểm tra lại sau tín hiệu tiếp theo.
             </div>
           )}
         </div>
@@ -1142,7 +1341,7 @@ export function TogogoTradingBotCompact({
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-teal-400" />
                 <span className="font-medium text-slate-200">
-                  Pick another symbol
+                  Chọn mã khác
                 </span>
               </div>
               <Select value={selectedStock} onValueChange={setSelectedStock}>
@@ -1175,12 +1374,12 @@ export function TogogoTradingBotCompact({
           )}
 
           <div className="space-y-3">
-            <Link href={getSymbolHref(selectedStock)}>
+            {/* <Link href={getSymbolHref(selectedStock)}>
               <Button className="w-full bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500 hover:from-blue-600 hover:via-cyan-600 hover:to-teal-600 text-white shadow-lg">
                 <Target className="w-4 h-4 mr-2" />
-                View details for {selectedStock.toUpperCase()}
+                Xem chi tiết cho {selectedStock.toUpperCase()}
               </Button>
-            </Link>
+            </Link> */}
           {!hideSymbolPicker && (
             <div className="grid grid-cols-2 gap-3">
               <Button
@@ -1188,14 +1387,15 @@ export function TogogoTradingBotCompact({
                 className="border-blue-400/30 text-slate-200 hover:bg-blue-500/20 hover:text-white hover:border-blue-400/50"
               >
                 <ArrowRight className="w-4 h-4 mr-2" />
-                Explore more bots
+                Khám phá thêm các bot khác
               </Button>
               <Button
                 variant="outline"
                 className="border-teal-400/30 text-slate-200 hover:bg-teal-500/20 hover:text-white hover:border-teal-400/50"
               >
                 <Zap className="w-4 h-4 mr-2" />
-                Activate services
+                Kích hoạt dịch vụ
+
               </Button>
             </div>
           )}
@@ -1204,25 +1404,25 @@ export function TogogoTradingBotCompact({
           <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-xl p-4 border border-emerald-400/20">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-400">Total trades recorded:</span>
+                <span className="text-slate-400">Tổng số giao dịch được ghi nhận:</span>
                 <span className="font-bold text-white">
                   {combinedTrades.length}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Latest signal:</span>
+                <span className="text-slate-400">Tín hiệu mới nhất:</span>
                 <span className="font-bold text-cyan-400">
                   {latestSignalLabel}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Suggested timeframe:</span>
+                <span className="text-slate-400">Khoảng thời gian đề xuất:</span>
                 <span className="font-bold text-emerald-400">
                   {currentDecoratedBot?.timeframe ?? "-"}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Strategy snapshot:</span>
+                <span className="text-slate-400">Ảnh chụp chiến lược:</span>
                 <span className="font-bold text-amber-300">
                   {currentDecoratedBot?.strategy ?? "-"}
                 </span>
@@ -1232,7 +1432,7 @@ export function TogogoTradingBotCompact({
 
           <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-lg p-3 border border-amber-400/20">
             <p className="text-sm text-amber-300 leading-relaxed">
-              Reminder: these bots support your decision making. Always review your risk and portfolio plan before trading.
+              Lưu ý: Các bot này chỉ hỗ trợ bạn trong việc ra quyết định. Hãy luôn xem xét lại kế hoạch quản lý rủi ro và danh mục đầu tư của bạn trước khi giao dịch.
             </p>
           </div>
         </CardContent>

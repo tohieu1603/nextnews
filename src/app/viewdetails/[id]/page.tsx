@@ -203,8 +203,8 @@ export default function DetailedAnalysisPage() {
     (stock?.code ? stock.code.toUpperCase() : "");
 
   const botSummaryLine = activeBotName
-    ? `Bot hien tai: ${activeBotName}${activeBotCategory ? ` (${activeBotCategory})` : ""}.`
-    : "Chua co bot nao duoc kich hoat cho ma nay.";
+    ? `Bot hiện tại: ${activeBotName}${activeBotCategory ? ` (${activeBotCategory})` : ""}.`
+    : "Chưa có bot nào được kích hoạt cho mã này.";
   const numericSymbolId = useMemo(() => {
     if (data?.symbolData && typeof data.symbolData.id === "number") {
       return data.symbolData.id;
@@ -277,7 +277,7 @@ export default function DetailedAnalysisPage() {
             </Card>
 
             {(tradingSymbolCode || numericSymbolId !== null) && (
-              <div className="mt-10">
+              <div className="mt-10 mb-14">
                 <h2 className="text-2xl font-semibold text-white mb-2">
                   Gợi ý Trading Bot
                 </h2>
@@ -300,11 +300,14 @@ export default function DetailedAnalysisPage() {
                 />
               </div>
             )}
-            <TabsDetail
-              stock={stock}
-              data={detailedInfo || {}}
-              isPositive={isPositive}
-            />
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-x-0 -top-8 mx-auto h-16 max-w-4xl rounded-full bg-gradient-to-r from-cyan-500/20 via-blue-500/15 to-emerald-500/20 blur-2xl" />
+              <TabsDetail
+                stock={stock}
+                data={detailedInfo || {}}
+                isPositive={isPositive}
+              />
+            </div>
           </div>
         </div>
       </div>

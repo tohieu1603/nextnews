@@ -121,11 +121,7 @@ export default function GovernanceTab({ stock, data }: GovernanceProps) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Subsidiaries - Full Width */}
       <Subsidiaries data={data} />
-
-      {/* ESG & Risk - Full Width Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-slate-800/60 border border-blue-400/30">
           <CardContent className="p-4">
