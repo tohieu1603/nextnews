@@ -14,7 +14,7 @@ const API_URL = `${process.env.NEXT_PUBLIC_API_ORIGIN}/api`;
 console.log("API_URLLLLL", API_URL);
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 30000,
 });
 
 let serviceApiAuthToken: string | null = null;
@@ -775,8 +775,8 @@ export const verifyNotificationEndpoint = async (
  */
 export const getGoogleAuthUrl = async () => {
   try {
-    // const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=http://localhost:3001/auth/google/callback", {
-      const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=https://devnews.togogo.vn/auth/google/callback",{
+    const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=http://localhost:3001/auth/google/callback", {
+    // const response = await api.get("/auth/google/auth-url?state=a&redirect_uri=https://devnews.togogo.vn/auth/google/callback",{
     // const response = await api.get("/auth/google/auth-url?state=",{  
 
     withCredentials: true,
